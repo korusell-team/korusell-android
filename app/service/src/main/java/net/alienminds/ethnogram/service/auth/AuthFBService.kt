@@ -51,7 +51,7 @@ class AuthFBService internal constructor(): BaseService(), AuthService {
         PhoneAuthProvider.verifyPhoneNumber(options)
         val result = state.value.takeIf {
             it !is PhoneVerificationState.Init
-        }?: state.timeout(30.seconds).first {
+        }?: state.timeout(60.seconds).first {
             it !is PhoneVerificationState.Init
         }
 
