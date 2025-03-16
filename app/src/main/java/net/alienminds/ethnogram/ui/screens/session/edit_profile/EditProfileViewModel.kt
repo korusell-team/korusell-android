@@ -18,6 +18,7 @@ import net.alienminds.ethnogram.service.cities.entities.City
 import net.alienminds.ethnogram.service.users.entities.User
 import net.alienminds.ethnogram.utils.AppScreenModel
 import kotlin.time.Duration.Companion.seconds
+import androidx.core.net.toUri
 
 class EditProfileViewModel: AppScreenModel() {
 
@@ -36,8 +37,8 @@ class EditProfileViewModel: AppScreenModel() {
     val allCities by API.cities.all.toState(null)
 
 
-    var isPublic by mutableStateOf(profile?.isPublic?: false)
-    var isAvailablePhone by mutableStateOf(profile?.phoneIsAvailable?: false)
+    var isPublic by mutableStateOf(profile?.isPublic == true)
+    var isAvailablePhone by mutableStateOf(profile?.phoneIsAvailable == true)
     val phone by derivedStateOf { profile?.phone?: authProfile?.phoneNumber.orEmpty() }
     var name by mutableStateOf(profile?.name)
     var surname by mutableStateOf(profile?.surname)
@@ -67,15 +68,21 @@ class EditProfileViewModel: AppScreenModel() {
     val edited by derivedStateOf {
         addedImages.isNotEmpty() ||
         removedImages.isNotEmpty() ||
-        isPublic != (profile?.isPublic?: false) ||
-        isAvailablePhone != (profile?.phoneIsAvailable?: false) ||
+        isPublic != (profile?.isPublic == true) ||
+        isAvailablePhone != (profile?.phoneIsAvailable == true) ||
         name != profile?.name ||
         surname != profile?.surname ||
         bio != profile?.bio ||
         info != profile?.info ||
         linksMap.any { it.value.orEmpty() != profile?.linksMap?.get(it.key).orEmpty() } ||
-        (cityIds.containsAll(profile?.cities.orEmpty()) && cityIds.size == (profile?.cities?.size?: 0)).not() ||
-        (categoryIds.containsAll(profile?.categories.orEmpty()) && categoryIds.size == (profile?.categories?.size?: 0)).not()
+        cityIds.compareIds(profile?.cities.orEmpty()).not() ||
+        categoryIds.compareIds(profile?.categories.orEmpty()).not()
+    }
+
+    private fun List<Int>.compareIds(
+        list: List<Int>,
+    ) = size == list.size && all { a ->
+        list.any { it == a }
     }
 
     val canSave by derivedStateOf {
@@ -109,8 +116,8 @@ class EditProfileViewModel: AppScreenModel() {
                     API.users.me.timeout(5.seconds).first { it != null }
                 }.getOrNull()
 
-                isPublic = user?.isPublic?: false
-                isAvailablePhone = user?.phoneIsAvailable?: false
+                isPublic = user?.isPublic == true
+                isAvailablePhone = user?.phoneIsAvailable == true
                 name = user?.name
                 surname = user?.surname
                 bio = user?.bio
@@ -144,11 +151,11 @@ class EditProfileViewModel: AppScreenModel() {
     }
 
     fun addImage(
-        photos: List<Uri>
+        photos: List<Uri>,
     ) = addedImages.addAll(0, photos.map { it.toString() })
 
     fun removeImage(
-        photo: String? = images.firstOrNull()
+        photo: String? = images.firstOrNull(),
     ) = photo?.let {
         when(addedImages.contains(it)){
             true -> addedImages.remove(it)
@@ -201,7 +208,7 @@ class EditProfileViewModel: AppScreenModel() {
             newImages.remove(it)
         }
         addedImages.mapNotNull{
-            API.users.uploadImage(Uri.parse(it)).data?.toString()
+            API.users.uploadImage(it.toUri()).data?.toString()
         }.let { newImages.addAll(0, it) }
         removedImages.clear()
         addedImages.clear()
@@ -209,8 +216,10 @@ class EditProfileViewModel: AppScreenModel() {
     }
 
     private fun getEditedFields(): List<InputField<Any>> = listOf(
-        Pair(InputField(User.Fields.IS_PUBLIC, isPublic), profile?.isPublic?: false),
-        Pair(InputField(User.Fields.PHONE_IS_AVAILABLE, isAvailablePhone), profile?.phoneIsAvailable?: false),
+        Pair(InputField(User.Fields.IS_PUBLIC, isPublic), profile?.isPublic == true),
+        Pair(InputField(User.Fields.PHONE_IS_AVAILABLE, isAvailablePhone),
+            profile?.phoneIsAvailable == true
+        ),
         Pair(InputField(User.Fields.NAME, name.orEmpty()), profile?.name.orEmpty()),
         Pair(InputField(User.Fields.SURNAME, surname.orEmpty()), profile?.surname.orEmpty()),
         Pair(InputField(User.Fields.BIO, bio.orEmpty()), profile?.bio.orEmpty()),

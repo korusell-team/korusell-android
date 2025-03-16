@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.google.service)
 }
 
+val versionMajor = 0
+val versionMinor = 0 //max 9
+val versionPatch = 1 //max 9
+val versionBuild = 3 //max 99
+
 android {
     namespace = "net.alienminds.ethnogram"
     compileSdk = 35
@@ -13,8 +18,8 @@ android {
         applicationId = "net.alienminds.ethnogram"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
+        versionName = "${versionMajor}.${versionMinor}.${versionPatch}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
