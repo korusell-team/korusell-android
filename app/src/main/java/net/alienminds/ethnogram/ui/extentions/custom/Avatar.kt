@@ -2,6 +2,7 @@ package net.alienminds.ethnogram.ui.extentions.custom
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +55,7 @@ fun Avatar(
 ) = SubcomposeAsyncImage(
     modifier = modifier
         .clip(shape)
-        .border(border, shape)
+//        .border(border, shape)
         .clickable(
             enabled = onClick != null,
             onClick = { onClick?.invoke() }
@@ -71,10 +75,16 @@ fun Avatar(
     ) {
         AnimatedContent(
             targetState = derState,
-            modifier = Modifier.align(Alignment.Center)
+            modifier = Modifier.align(Alignment.Center), label = ""
         ) {
             if (it is AsyncImagePainter.State.Success && it.painter.intrinsicSize.isEmpty().not()) {
                 this@SubcomposeAsyncImage.SubcomposeAsyncImageContent(
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (initials.isEmpty()) {
+                Icon(
+                    Icons.Rounded.AccountCircle,
+                    contentDescription = "avatar view",
                     modifier = Modifier.fillMaxSize()
                 )
             } else {

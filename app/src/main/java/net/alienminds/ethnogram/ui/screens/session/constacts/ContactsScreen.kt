@@ -246,7 +246,7 @@ class ContactsScreen: PageTransitionScreen {
                     Avatar(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
-                            .size(64.dp),
+                            .size(52.dp),
                         model = user.image.firstOrNull(),
                         initials = user.initials,
                         contentScale = ContentScale.Crop,
