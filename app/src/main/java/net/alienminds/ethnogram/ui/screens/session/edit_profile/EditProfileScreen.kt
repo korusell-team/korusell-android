@@ -289,7 +289,7 @@ class EditProfileScreen: PageTransitionScreen {
             state = cityPicker,
             itemsMap = mapOf("" to vm.allCities.orEmpty()),
             itemTitle = { it.localName },
-            itemSelected = { vm.cities?.run { any { it.id == 0 } || contains(it) }?: false },
+            itemSelected = { vm.cities?.run { any { it.id == 0L } || contains(it) } == true },
             onSelect = { _, item ->
                 vm.selectCity(item)
             }

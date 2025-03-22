@@ -27,8 +27,8 @@ class EditProfileViewModel: AppScreenModel() {
 
     private val profile by API.users.me.toState(null)
 
-    private val cityIds = mutableStateListOf<Int>()
-    private val categoryIds = mutableStateListOf<Int>()
+    private val cityIds = mutableStateListOf<Long>()
+    private val categoryIds = mutableStateListOf<Long>()
 
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
@@ -79,8 +79,8 @@ class EditProfileViewModel: AppScreenModel() {
         categoryIds.compareIds(profile?.categories.orEmpty()).not()
     }
 
-    private fun List<Int>.compareIds(
-        list: List<Int>,
+    private fun List<Long>.compareIds(
+        list: List<Long>,
     ) = size == list.size && all { a ->
         list.any { it == a }
     }
@@ -96,7 +96,7 @@ class EditProfileViewModel: AppScreenModel() {
     val allCategoriesGrouped by derivedStateOf {
         allCategories.orEmpty()
             .groupBy { it.p_id }
-            .filter { it.key != 0 }
+            .filter { it.key != 0L }
             .mapNotNull { item ->
                 allCategories?.find {
                     it.id == item.key
@@ -164,14 +164,17 @@ class EditProfileViewModel: AppScreenModel() {
     }
 
     fun selectCategory(category: Category){
-        when(categoryIds.contains(category.id)){
-            true -> categoryIds.remove(category.id)
+        val id = categoryIds.find { it == category.id }
+        when(categoryIds.contains(id)){
+            true -> {
+                categoryIds.remove(id)
+            }
             false -> categoryIds.add(category.id)
         }
     }
 
     fun selectCity(city: City){
-        when(city.id == 0){
+        when(city.id == 0L){
             true -> when(cityIds.contains(0)){
                 true -> cityIds.clear()
                 false -> cityIds.run {

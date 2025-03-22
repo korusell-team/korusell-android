@@ -115,8 +115,8 @@ class ContactsViewModel: AppScreenModel() {
         currentCity: City?
     ) = filter { user ->
         currentCity == null ||
-        currentCity.id == 0 ||
-        user.cities.any { it == 0 } ||
+        currentCity.id == 0L ||
+        user.cities.any { it == 0L } ||
         user.cities.any { it == currentCity.id }
     }
 

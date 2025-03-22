@@ -125,7 +125,7 @@ class ContactsScreen: PageTransitionScreen {
             title = stringResource(R.string.filter_by_cities),
             items = vm.allCities,
             itemTitle = { it.localName },
-            itemSelected = { vm.currentCity == it || vm.currentCity?.id == 0 },
+            itemSelected = { vm.currentCity == it || vm.currentCity?.id == 0L },
             onSelect = vm::selectCity
         )
     }

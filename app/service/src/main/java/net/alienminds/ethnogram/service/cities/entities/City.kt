@@ -7,7 +7,7 @@ class City internal constructor(
     querySnapshot: QueryDocumentSnapshot
 ): DBObject(querySnapshot){
 
-    val id: Int by querySnapshot.data
+    val id: Long by querySnapshot.data
     val en: String = getValue(Fields.EN)
     val ko: String = getValue(Fields.KO)
     val ru: String = getValue(Fields.RU)

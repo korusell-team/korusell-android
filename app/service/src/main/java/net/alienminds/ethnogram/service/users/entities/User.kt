@@ -36,8 +36,8 @@ class User internal constructor(
     val smallImagePath: String? = getValue(Fields.SMALL_IMAGE_PATH)
 
     val likes: List<String> = getValue(Fields.LIKES)
-    val categories: List<Int> = getValue(Fields.CATEGORIES)
-    val cities: List<Int> = getValue(Fields.CITIES)
+    val categories: List<Long> = getValue(Fields.CATEGORIES)
+    val cities: List<Long> = getValue(Fields.CITIES)
     val blockedBy: List<String> = getValue(Fields.BLOCKED)//Users id who blocked this user
     val reports: List<String> = getValue(Fields.REPORTS)
 
@@ -134,8 +134,8 @@ class User internal constructor(
         val SMALL_IMAGE = Field<String?>("smallImage", null)
         val SMALL_IMAGE_PATH = Field<String?>("smallImagePath", null)
         val LIKES = Field("likes", emptyList<String>())
-        val CATEGORIES = Field("categories", emptyList<Int>())
-        val CITIES = Field("cities", emptyList<Int>())
+        val CATEGORIES = Field("categories", emptyList<Long>())
+        val CITIES = Field("cities", emptyList<Long>())
         val BLOCKED = Field("blockedBy", emptyList<String>())
         val REPORTS = Field("reports", emptyList<String>())
         internal val CREATED = Field<Instant?>("created", null)

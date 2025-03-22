@@ -7,17 +7,17 @@ class Category internal constructor(
     querySnapshot: QueryDocumentSnapshot
 ): DBObject(querySnapshot){
 
-    val id: Int by querySnapshot.data
-    val p_id: Int by querySnapshot.data
+    val id: Long by querySnapshot.data
+    val p_id: Long by querySnapshot.data
     val emoji: String = getValue(Fields.EMOJI)
     val title: String = getValue(Fields.TITLE)
     val tags: List<String> = getValue(Fields.TAGS)
 
     val isSubCategory
-        get() = p_id != 0
+        get() = p_id != 0L
 
     val isCategory
-        get() = p_id == 0
+        get() = p_id == 0L
 
 
     internal object Fields{
