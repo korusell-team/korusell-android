@@ -37,7 +37,6 @@ val User.Link.placeholder
 val LinkType.placeholder
     @Composable get() = when(this){
         LinkType.INSTAGRAM,
-        LinkType.TELEGRAM,
         LinkType.THREADS,
         LinkType.TWITTER -> stringResource(R.string.nickname)
         LinkType.YOUTUBE -> stringResource(R.string.channel)
@@ -45,8 +44,9 @@ val LinkType.placeholder
         LinkType.FACEBOOK,
         LinkType.TIKTOK,
         LinkType.KAKAO -> stringResource(R.string.id)
+        LinkType.TELEGRAM -> stringResource(R.string.telegram_placeholder)
         LinkType.LINKED_IN -> stringResource(R.string.profile)
-        LinkType.WHATS_APP -> stringResource(R.string.phone_number)
+        LinkType.WHATS_APP -> stringResource(R.string.phone_placeholder)
     }
 
 val User.Link.roundIcon

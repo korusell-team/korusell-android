@@ -11,6 +11,7 @@
     <string name="phone_number">Номер телефона</string>
     <string name="get_sms">Получить СМС</string>
     <string name="auth_phone_description">Войдите или Зарегестрируйтесь указав номер телефона</string>
+    <string name="telegram_placeholder">имя пользователя</string>
     <string name="phone_placeholder">+82100001111</string>
     <string name="terms_objectionable_text">"Политикой нежелательного контента "</string>
     <string name="terms_objectionable_link">"https://wide-arthropod-bad.notion.site/00bc2c43d10449a68463233a80007ee6"</string>
