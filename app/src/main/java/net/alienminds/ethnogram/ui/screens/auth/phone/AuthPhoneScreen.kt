@@ -1,6 +1,7 @@
 package net.alienminds.ethnogram.ui.screens.auth.phone
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -49,10 +51,13 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import net.alienminds.ethnogram.R
+import net.alienminds.ethnogram.service.users.entities.User
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
+import net.alienminds.ethnogram.utils.UniversalPhoneVisualTransformation
 import net.alienminds.ethnogram.utils.openLink
+import net.alienminds.ethnogram.utils.phoneToFbPhone
 
 internal class AuthPhoneScreen: PageTransitionScreen {
 
@@ -89,11 +94,15 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .navigationBarsPadding()
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = phone.length >= 8,
-            onClick = { vm.signIn(context, navigator, "+$phone") }
+            enabled = phone.length >= 9,
+            onClick = {
+               vm.signIn(context, navigator,   phoneToFbPhone(phone))
+            }
         )
 
     }
+
+
 
     @Composable
     private fun FieldContent(
@@ -119,20 +128,20 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground
         )
+
+
         TextField(
-            modifier = Modifier.fillMaxWidth(),
             value = phone,
             onValueChange = { newValue ->
-                onPhoneChange(newValue.filter { it.isDigit() }.take(15))
+                onPhoneChange(newValue.filter { it.isDigit() }.take(12))
             },
-            prefix = {
-                Text(
-                    text = "+".takeIf { phone.isNotEmpty() }.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColor.gray900,
-                    fontWeight = FontWeight.Medium
-                )
-            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = AppColor.gray900
+            ),
             placeholder = {
                 Text(
                     text = stringResource(R.string.phone_placeholder),
@@ -141,14 +150,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                     fontWeight = FontWeight.Medium
                 )
             },
-            shape = MaterialTheme.shapes.large,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Phone
-            ),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Medium,
-                color = AppColor.gray900
-            ),
+            visualTransformation = UniversalPhoneVisualTransformation(),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
@@ -159,8 +161,10 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 disabledContainerColor = AppColor.blueGray100,
                 errorContainerColor = AppColor.blueGray100,
                 cursorColor = AppColor.lightBlue800
+            ),
+            singleLine = true,
             )
-        )
+
         Text(
             modifier = Modifier.padding(top = 8.dp),
             text = error.orEmpty(),
