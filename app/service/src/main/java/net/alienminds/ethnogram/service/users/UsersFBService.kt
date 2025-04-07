@@ -56,6 +56,7 @@ class UsersFBService internal constructor(): BaseService(), UsersService {
             snapshot
                 ?.map { User(it) }
                 ?.sortedByDescending { it.likes.size }
+                ?.sortedByDescending { it.priority }
                 ?: emptyList()
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
     }
