@@ -6,6 +6,7 @@
     <string name="block">Заблокировать</string>
     <string name="report">Пожаловаться</string>
     <string name="signin">Войти</string>
+    <string name="stay">Остаться</string>
 
 <!--    SignIn-->
     <string name="phone_number">Номер телефона</string>
@@ -21,8 +22,12 @@
     <string name="auth_terms_2">"и с "</string>
     <string name="auth_otp_description">Введите шестизначный код полученный в SMS</string>
     <string name="resend_code">Отправить код еще раз</string>
+    <string name="fio_title">Введите имя, фамилию и прикрепите фото для аватара</string>
+    <string name="your_bio">Ваше Био</string>
+    <string name="your_profile">Ваш Профиль</string>
+    <string name="your_bio_description">Краткая информация о Вас</string>
 
-<!--    Contacts-->
+    <!--    Contacts-->
     <string name="contacts">Контакты</string>
     <string name="categories">Категории</string>
     <string name="filter_by_cities">Фильтр по городам</string>
@@ -50,6 +55,8 @@
     <string name="show_phone_number">Показать номер телефона</string>
     <string name="show_phone_description">Доступность номера телефона позволяет позвонить Вам или отправить SMS в один тап прямо из Приложения</string>
     <string name="input_name_and_surname">Укажите имя и фамилию</string>
+    <string name="input_name">Имя</string>
+    <string name="input_surname">Фамилия</string>
     <string name="public_account">Публичный Аккаунт</string>
     <string name="nickname">Никнейм</string>
     <string name="channel">Канал</string>
@@ -74,6 +81,8 @@
     <string name="socials_description">Разместите Ваши соц сети и мессенджеры</string>
     <string name="logout">Выйти</string>
     <string name="alert_public_title">Чтобы сделать аккаунт публичным</string>
+    <string name="alert_onboarding_title">Войти без заполнения?</string>
+    <string name="alert_onboarding_body">Заполните чтобы сделать аккаунт публичным</string>
     <string name="alert_public_body">• Укажите имя\n• Загрузите фото\n• Заполните Био\n• Выберите категорию</string>
     <string name="ok">Ок</string>
     <string name="no_photo_placeholder">Фотографий нет.\nУвы и ах...</string>

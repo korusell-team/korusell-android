@@ -80,6 +80,7 @@ class AuthFBService internal constructor(): BaseService(), AuthService {
 
 
     override suspend fun logout() = withSave{
+        Log.d(logTag, "signOut")
         Firebase.auth.signOut()
     }
 

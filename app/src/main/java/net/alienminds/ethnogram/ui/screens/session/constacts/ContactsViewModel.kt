@@ -37,6 +37,13 @@ class ContactsViewModel: AppScreenModel() {
     val subCategories by filteredSubCategories()
     val users by filteredUsers()
 
+    fun onLoginSuccess() = withLoadingScope {
+        val reloadResult = API.users.reloadFromServer()
+
+        if (reloadResult.isSuccess) {
+       } else {
+        }
+    }
 
     fun selectCategory(category: Category){
         searchMode = false

@@ -1,7 +1,6 @@
 package net.alienminds.ethnogram.ui.screens.auth.phone
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -51,7 +49,6 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.service.users.entities.User
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
@@ -96,7 +93,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             enabled = phone.length >= 9,
             onClick = {
-               vm.signIn(context, navigator,   phoneToFbPhone(phone))
+                vm.signIn(context, navigator,   phoneToFbPhone(phone))
             }
         )
 
@@ -163,7 +160,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 cursorColor = AppColor.lightBlue800
             ),
             singleLine = true,
-            )
+        )
 
         Text(
             modifier = Modifier.padding(top = 8.dp),
@@ -236,6 +233,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         CONFIDENTIALITY(R.string.terms_confidentiality_link, R.string.terms_confidentiality_text)
     }
 }
+
 
 @Preview
 @Composable

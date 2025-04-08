@@ -67,8 +67,8 @@ class ContactsScreen: PageTransitionScreen {
 
         val navigator = LocalNavigator.current
         val vm = rememberScreenModel { ContactsViewModel() }
-
         val dialogCities = rememberAppDialogState()
+        vm.onLoginSuccess()
 
         Column(
             modifier = Modifier

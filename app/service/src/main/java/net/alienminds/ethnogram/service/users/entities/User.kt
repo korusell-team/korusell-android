@@ -147,5 +147,9 @@ class User internal constructor(
     override fun toString(): String {
         return "(uid = $uid, name = $name, surname = $surname, phone = $phone)"
     }
+    fun User.isProfileComplete(): Boolean {
+        // Ваши критерии:
+        return !name.isNullOrBlank() || !surname.isNullOrBlank() || !image.isNullOrEmpty()
+    }
     
 }

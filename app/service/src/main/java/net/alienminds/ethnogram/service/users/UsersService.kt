@@ -29,4 +29,5 @@ interface UsersService {
     suspend fun favoriteUser(userId: String, isFavorite: Boolean): ServiceResult<Boolean>
     suspend fun blockUser(userId: String): ServiceResult<Boolean>
     suspend fun reportUser(userId: String): ServiceResult<Boolean>
+    suspend fun reloadFromServer(): ServiceResult<Boolean>
 }

@@ -9,6 +9,7 @@ import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.SnapshotListenOptions
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -26,6 +27,7 @@ import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.base.BaseService
 import net.alienminds.ethnogram.service.base.entities.DBObject
 import net.alienminds.ethnogram.service.base.entities.InputField
+import net.alienminds.ethnogram.service.base.entities.ServiceResult
 import net.alienminds.ethnogram.service.base.entities.UserNotAuthorized
 import net.alienminds.ethnogram.service.users.entities.User
 import java.util.UUID
@@ -66,6 +68,18 @@ class UsersFBService internal constructor(): BaseService(), UsersService {
             users.filter { it.isPublic }
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
     }
+
+    override suspend fun reloadFromServer(): ServiceResult<Boolean> = withSave<Boolean> {
+        try {
+            collection.get(Source.SERVER).await()
+
+            true
+        } catch (e: Exception) {
+            Log.e(logTag, "Failed to reload from server: ${e.localizedMessage}", e)
+            false
+        }
+    }
+
 
     override val me by lazy {
         allUsers.map { users ->
@@ -205,7 +219,7 @@ class UsersFBService internal constructor(): BaseService(), UsersService {
             collection.addSnapshotListener(
                 SnapshotListenOptions.Builder()
                     .setMetadataChanges(MetadataChanges.INCLUDE)
-                    .setSource(ListenSource.CACHE)
+                    .setSource(ListenSource.DEFAULT)
                     .build()
             ) { value, error ->
                 if (error != null) {
