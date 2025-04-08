@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.ui.screens.auth.phone
 
+import android.content.ComponentCallbacks
 import android.content.Context
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -17,7 +18,8 @@ class AuthPhoneViewModel: StateScreenModel<AuthPhoneViewModel.Companion.State>(S
     fun signIn(
         context: Context,
         navigator: Navigator,
-        phoneNumber: String
+        phoneNumber: String,
+        callback: ()->Unit
     ) = screenModelScope.launch{
         context.findActivity()?.let { activity ->
             mutableState.value = State(loading = true)
@@ -36,6 +38,7 @@ class AuthPhoneViewModel: StateScreenModel<AuthPhoneViewModel.Companion.State>(S
                         navigator.push(AuthOTPScreen(verificationId))
                     }
                 }
+                callback()
             }
         }
     }

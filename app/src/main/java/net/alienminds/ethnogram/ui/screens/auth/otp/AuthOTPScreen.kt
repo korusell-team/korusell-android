@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,10 +37,11 @@ import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.fields.OtpTextField
 import net.alienminds.ethnogram.ui.extentions.rootOrThrow
 import net.alienminds.ethnogram.ui.theme.AppColor
+import net.alienminds.ethnogram.utils.shimmerEffect
 
 class AuthOTPScreen(
-    private val verificationId: String
-): PageTransitionScreen {
+    private val verificationId: String,
+) : PageTransitionScreen {
 
     override val position: Int
         get() = 1
@@ -48,12 +50,13 @@ class AuthOTPScreen(
     override fun Content() = Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
-    ){
+    ) {
 
         val rootNavigator = LocalNavigator.rootOrThrow
         val vm = rememberScreenModel { AuthOTPViewModel() }
 
         var otp by remember { mutableStateOf("") }
+        val loadState = remember { mutableStateOf(false) }
 
         BackButton(
             modifier = Modifier.statusBarsPadding(),
@@ -64,6 +67,7 @@ class AuthOTPScreen(
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth(),
             otp = otp,
+            load = loadState,
             onOtpChange = { otp = it }
         )
         FooterContent(
@@ -72,11 +76,17 @@ class AuthOTPScreen(
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
             enabled = otp.length == 6,
-            onSignIn = { vm.signIn(
-                rootNavigator = rootNavigator,
-                verificationId = verificationId,
-                otpCode = otp
-            ) },
+            load = loadState,
+            onSignIn = {
+                loadState.value = true
+                vm.signIn(
+                    rootNavigator = rootNavigator,
+                    verificationId = verificationId,
+                    otpCode = otp
+                ) {
+                    loadState.value = false
+                }
+            },
             onResendCode = vm::resendCode
         )
     }
@@ -85,10 +95,11 @@ class AuthOTPScreen(
     private fun FieldContent(
         modifier: Modifier = Modifier,
         otp: String,
-        onOtpChange: (String) -> Unit
+        load: MutableState<Boolean>,
+        onOtpChange: (String) -> Unit,
     ) = Column(
         modifier = modifier
-    ){
+    ) {
         Icon(
             modifier = Modifier
                 .size(48.dp)
@@ -106,6 +117,7 @@ class AuthOTPScreen(
         )
         OtpTextField(
             value = otp,
+            load = load,
             onValueChange = onOtpChange
         )
     }
@@ -114,21 +126,23 @@ class AuthOTPScreen(
     private fun FooterContent(
         modifier: Modifier = Modifier,
         enabled: Boolean,
+        load: MutableState<Boolean>,
         onSignIn: () -> Unit,
-        onResendCode: () -> Unit
+        onResendCode: () -> Unit,
     ) = Column(
         modifier = modifier.imePadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
-    ){
+    ) {
         Button(
             modifier = Modifier
+                .shimmerEffect(load.value, MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .height(54.dp),
             shape = MaterialTheme.shapes.large,
             enabled = enabled,
             onClick = onSignIn
-        ){
+        ) {
             Text(stringResource(R.string.signin))
         }
         TextButton(

@@ -26,6 +26,8 @@
     <string name="your_bio">Ваше Био</string>
     <string name="your_profile">Ваш Профиль</string>
     <string name="your_bio_description">Краткая информация о Вас</string>
+    <string name="go_onboarding">Поехали!</string>
+    <string name="onboarding_body">\'На изи\' найди наших профессионалов, предпринимателей и инфлюэнсеров 😉</string>
 
     <!--    Contacts-->
     <string name="contacts">Контакты</string>

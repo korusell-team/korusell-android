@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,7 @@ import net.alienminds.ethnogram.ui.theme.EthnogramTheme
 import net.alienminds.ethnogram.utils.UniversalPhoneVisualTransformation
 import net.alienminds.ethnogram.utils.openLink
 import net.alienminds.ethnogram.utils.phoneToFbPhone
+import net.alienminds.ethnogram.utils.shimmerEffect
 
 internal class AuthPhoneScreen: PageTransitionScreen {
 
@@ -69,6 +71,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
         var phone by remember { mutableStateOf("") }
+        val loadState = remember { mutableStateOf(false) }
 
         val vm = rememberScreenModel { AuthPhoneViewModel() }
         val state by vm.state.collectAsState()
@@ -82,6 +85,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth(),
             error = state.errorMessage,
+            load = loadState,
             phone = phone,
             onPhoneChange = { phone = it }
         )
@@ -92,8 +96,12 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
             enabled = phone.length >= 9,
+            load = loadState,
             onClick = {
-                vm.signIn(context, navigator,   phoneToFbPhone(phone))
+                loadState.value = true
+                vm.signIn(context, navigator,   phoneToFbPhone(phone)){
+                    loadState.value = false
+                }
             }
         )
 
@@ -105,6 +113,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     private fun FieldContent(
         modifier: Modifier = Modifier,
         error: String?,
+        load: MutableState<Boolean>,
         phone: String,
         onPhoneChange: (String) -> Unit
     ) = Column(
@@ -132,7 +141,9 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             onValueChange = { newValue ->
                 onPhoneChange(newValue.filter { it.isDigit() }.take(12))
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .shimmerEffect(load.value, MaterialTheme.shapes.large)
+                .fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             textStyle = MaterialTheme.typography.bodyMedium.copy(
@@ -174,6 +185,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     private fun FooterContent(
         modifier: Modifier = Modifier,
         enabled: Boolean,
+        load: MutableState<Boolean>,
         onClick: () -> Unit
     ) = Column(
         modifier = modifier,
@@ -196,6 +208,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         Button(
             modifier = Modifier
                 .padding(vertical = 16.dp)
+                .shimmerEffect(load.value, MaterialTheme.shapes.large)
                 .imePadding()
                 .fillMaxWidth()
                 .height(54.dp),

@@ -25,6 +25,8 @@ class AuthFBService internal constructor(): BaseService(), AuthService {
 
     override val isSignIn
         get() = auth.currentUser != null
+    override val isFirstLaunch
+        get() = auth.currentUser != null
 
     override val currentUser
         get() = auth.currentUser?.let { CurrentUser(it) }

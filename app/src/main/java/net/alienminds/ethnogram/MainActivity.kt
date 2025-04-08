@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import net.alienminds.ethnogram.ui.RootContent
 import net.alienminds.ethnogram.utils.AppContextWrapper
+import net.alienminds.ethnogram.utils.AppLaunchServiceImpl
 
 class MainActivity : ComponentActivity() {
 

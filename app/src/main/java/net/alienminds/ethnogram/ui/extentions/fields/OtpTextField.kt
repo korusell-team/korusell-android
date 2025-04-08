@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +46,13 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.job
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
+import net.alienminds.ethnogram.utils.shimmerEffect
 
 @Composable
 internal fun OtpTextField(
     modifier: Modifier = Modifier,
     value: String,
+    load:MutableState<Boolean>,
     onValueChange: (String) -> Unit,
     keyboardOptions: KeyboardOptions = KeyboardOptions(
         keyboardType = KeyboardType.NumberPassword
@@ -104,6 +107,7 @@ internal fun OtpTextField(
                 repeat(length) { index ->
                     Box(
                         modifier = Modifier
+                            .shimmerEffect(load.value, MaterialTheme.shapes.medium)
                             .widthIn(max = 48.dp)
                             .weight(1f, true)
                             .aspectRatio(0.75f)
@@ -168,6 +172,8 @@ private fun PreviewOtpTextField() = EthnogramTheme{
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth(),
             value = otp,
+
+            load = remember { mutableStateOf(false) },
             autoFocus = false,
             onValueChange = { otp = it }
         )

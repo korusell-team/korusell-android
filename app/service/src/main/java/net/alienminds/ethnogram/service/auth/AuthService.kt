@@ -9,6 +9,7 @@ interface AuthService{
 
 
     val isSignIn: Boolean
+    val isFirstLaunch: Boolean
 
     suspend fun signInByPhone(phoneNumber: String, activity: Activity): ServiceResult<SignInByPhoneResult>
     suspend fun confirmPhone(verificationId: String, code: String): ServiceResult<String>

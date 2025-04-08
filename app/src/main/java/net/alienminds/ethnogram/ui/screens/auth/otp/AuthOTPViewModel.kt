@@ -15,7 +15,8 @@ class AuthOTPViewModel: AppScreenModel(){
     fun signIn(
         rootNavigator: Navigator,
         verificationId: String,
-        otpCode: String
+        otpCode: String,
+        callback: () -> Unit = {}
     ) = withLoadingScope{
         val result = API.auth.confirmPhone(verificationId, otpCode)
         error = result.error
@@ -32,6 +33,7 @@ class AuthOTPViewModel: AppScreenModel(){
                 rootNavigator.replaceAll(SessionScreen())
             }
         }
+        callback()
     }
 
     fun resendCode(){
