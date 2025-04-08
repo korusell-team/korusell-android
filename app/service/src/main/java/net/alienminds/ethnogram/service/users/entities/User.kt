@@ -5,7 +5,7 @@ import net.alienminds.ethnogram.service.base.entities.DBObject
 import java.time.Instant
 
 class User internal constructor(
-    querySnapshot: QueryDocumentSnapshot
+    val querySnapshot: QueryDocumentSnapshot
 ): DBObject(querySnapshot){
 
     val uid: String = getValue(Fields.UID)
@@ -13,6 +13,7 @@ class User internal constructor(
     val surname: String? = getValue(Fields.SURNAME)
     val bio: String? = getValue(Fields.BIO)
     val info: String? = getValue(Fields.INFO)
+    val priority: Long? = getValue(Fields.PRIORITY)
 
     val phone: String? = getValue(Fields.PHONE)
     val telegram: String? = getValue(Fields.TELEGRAM)
@@ -112,7 +113,7 @@ class User internal constructor(
         val BIO = Field<String?>("bio", null)
         val INFO = Field<String?>("info", null)
         val IS_ONLINE = Field("isOnline", false)
-        val PRIORITY = Field("priority", Int.MAX_VALUE)
+        val PRIORITY = Field<Long?>("priority", null)
 
         internal val PHONE = Field<String?>("phone", null)
         val TELEGRAM = Field<String?>("telegram", null)
