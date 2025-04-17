@@ -83,10 +83,10 @@ import net.alienminds.ethnogram.mappers.roundIcon
 import net.alienminds.ethnogram.mappers.title
 import net.alienminds.ethnogram.service.categories.entities.Category
 import net.alienminds.ethnogram.service.users.entities.User
-import net.alienminds.ethnogram.ui.extentions.custom.PageIndicator
-import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.buttons.DropdownButton
+import net.alienminds.ethnogram.ui.extentions.custom.PageIndicator
+import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.screens.session.edit_profile.EditProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.IntentActions

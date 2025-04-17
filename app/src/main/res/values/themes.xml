@@ -2,4 +2,9 @@
 <resources>
 
     <style name="Theme.Ethnogram" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Ethnogram.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FFF5F5F5</item>m>
+        <item name="postSplashScreenTheme">@style/Theme.Ethnogram</item>
+    </style>
 </resources>

@@ -18,7 +18,7 @@
         <activity
             android:name="net.alienminds.ethnogram.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Ethnogram">
+            android:theme="@style/Theme.Ethnogram.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

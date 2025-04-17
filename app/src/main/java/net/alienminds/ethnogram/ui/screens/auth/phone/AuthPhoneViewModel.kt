@@ -1,6 +1,5 @@
 package net.alienminds.ethnogram.ui.screens.auth.phone
 
-import android.content.ComponentCallbacks
 import android.content.Context
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -12,6 +11,7 @@ import net.alienminds.ethnogram.ui.extentions.getRoot
 import net.alienminds.ethnogram.ui.screens.auth.otp.AuthOTPScreen
 import net.alienminds.ethnogram.ui.screens.session.SessionScreen
 import net.alienminds.ethnogram.utils.findActivity
+import net.alienminds.ethnogram.utils.getSuitableScreen
 
 class AuthPhoneViewModel: StateScreenModel<AuthPhoneViewModel.Companion.State>(State()) {
 
@@ -32,7 +32,7 @@ class AuthPhoneViewModel: StateScreenModel<AuthPhoneViewModel.Companion.State>(S
                 )
                 if (isSuccess) {
                     (data as? SignInByPhoneResult.Completed)?.run {
-                        navigator.getRoot().replaceAll(SessionScreen())
+                        navigator.getRoot().replaceAll(getSuitableScreen(context))
                     }
                     (data as? SignInByPhoneResult.NeedOTP)?.run {
                         navigator.push(AuthOTPScreen(verificationId))

@@ -8,7 +8,7 @@ plugins {
 val versionMajor = 0
 val versionMinor = 0 //max 9
 val versionPatch = 1 //max 9
-val versionBuild = 6 //max 99
+val versionBuild = 7 //max 99
 
 android {
     namespace = "net.alienminds.ethnogram"
@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.compose.shimmer)
     implementation(libs.cloudy)
+    implementation(libs.androidx.core.splashscreen)
 
     //Navigation
     implementation(libs.voyager.navigator)

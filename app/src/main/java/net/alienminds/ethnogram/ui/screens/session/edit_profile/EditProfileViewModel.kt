@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.timeout
@@ -18,7 +19,6 @@ import net.alienminds.ethnogram.service.cities.entities.City
 import net.alienminds.ethnogram.service.users.entities.User
 import net.alienminds.ethnogram.utils.AppScreenModel
 import kotlin.time.Duration.Companion.seconds
-import androidx.core.net.toUri
 
 class EditProfileViewModel: AppScreenModel() {
 

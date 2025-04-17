@@ -97,7 +97,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             enabled = phone.length >= 9,
             load = loadState,
-            onClick = {
+            onNext = {
                 loadState.value = true
                 vm.signIn(context, navigator,   phoneToFbPhone(phone)){
                     loadState.value = false
@@ -186,7 +186,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         modifier: Modifier = Modifier,
         enabled: Boolean,
         load: MutableState<Boolean>,
-        onClick: () -> Unit
+        onNext: () -> Unit
     ) = Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -214,7 +214,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .height(54.dp),
             shape = MaterialTheme.shapes.large,
             enabled = enabled,
-            onClick = onClick
+            onClick = onNext
         ){
             Text(stringResource(R.string.next))
         }

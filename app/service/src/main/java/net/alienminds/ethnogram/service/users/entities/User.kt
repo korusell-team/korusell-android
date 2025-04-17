@@ -143,13 +143,11 @@ class User internal constructor(
         internal val UPDATED = Field<Instant?>("updated", null)
     }
 
+    val isProfileComplete
+        get() = !name.isNullOrBlank() || !surname.isNullOrBlank() || image.isNotEmpty()
 
     override fun toString(): String {
         return "(uid = $uid, name = $name, surname = $surname, phone = $phone)"
     }
-    fun User.isProfileComplete(): Boolean {
-        // Ваши критерии:
-        return !name.isNullOrBlank() || !surname.isNullOrBlank() || !image.isNullOrEmpty()
-    }
-    
+
 }

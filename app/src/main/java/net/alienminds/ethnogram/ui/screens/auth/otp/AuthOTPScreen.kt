@@ -27,15 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.fields.OtpTextField
 import net.alienminds.ethnogram.ui.extentions.rootOrThrow
+import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.shimmerEffect
 
@@ -52,8 +53,9 @@ class AuthOTPScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
 
+        val ctx = LocalContext.current
         val rootNavigator = LocalNavigator.rootOrThrow
-        val vm = rememberScreenModel { AuthOTPViewModel() }
+        val vm = rememberScreenModel { AuthOTPViewModel{ ctx } }
 
         var otp by remember { mutableStateOf("") }
         val loadState = remember { mutableStateOf(false) }
