@@ -689,7 +689,11 @@ class EditProfileScreen: PageTransitionScreen {
                     .padding(horizontal = 8.dp)
                     .fillMaxWidth(),
                 value = bio,
-                onValueChange = onChange,
+                onValueChange = {
+                    if (it.length <= 80) {
+                        onChange(it)
+                    }
+                },
                 enabled = loading.not(),
                 label = { Text(stringResource(R.string.bio)) },
                 placeholder = { Text(stringResource(R.string.bio_placeholder)) }

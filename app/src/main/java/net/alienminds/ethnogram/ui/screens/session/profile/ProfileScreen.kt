@@ -467,7 +467,7 @@ class ProfileScreen(
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = AppColor.gray600,
-            maxLines = 1,
+            maxLines = 4,
             overflow = TextOverflow.Ellipsis
         )
     }

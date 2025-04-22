@@ -251,7 +251,9 @@ class ProfileSetupScreen(
         TextField(
             value = text.value.orEmpty(),
             onValueChange = { newValue ->
-                text.value = newValue
+                if (newValue.length <= 80) {
+                    text.value = newValue
+                }
             },
             modifier = modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
