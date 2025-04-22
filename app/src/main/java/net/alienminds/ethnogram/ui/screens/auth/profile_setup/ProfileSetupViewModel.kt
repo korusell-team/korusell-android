@@ -5,6 +5,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import net.alienminds.ethnogram.service.API
 import net.alienminds.ethnogram.service.base.entities.InputField
@@ -15,13 +16,12 @@ class ProfileSetupViewModel: AppScreenModel() {
 
     private val profile by API.users.me.toState(null)
 
-
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
 
-    var name = mutableStateOf(profile?.name)
-    var surname = mutableStateOf(profile?.surname)
-    var bio = mutableStateOf(profile?.bio)
+    var name by mutableStateOf(profile?.name)
+    var surname by mutableStateOf(profile?.surname)
+    var bio by mutableStateOf(profile?.bio)
 
     val images by derivedStateOf {
         addedImages
@@ -31,11 +31,15 @@ class ProfileSetupViewModel: AppScreenModel() {
 
 
     private val isErrorAvatar by derivedStateOf {images.isEmpty() }
-    val isErrorName by derivedStateOf {  name.value.isNullOrEmpty() }
-    val isErrorSurname by derivedStateOf {  surname.value.isNullOrEmpty() }
+    private val isErrorName by derivedStateOf { name.isNullOrEmpty() }
+    private val isErrorSurname by derivedStateOf { surname.isNullOrEmpty() }
 
-    fun onLoginSuccess() = withLoadingScope {
-        val reloadResult = API.users.reloadFromServer()
+    init {
+        onLoginSuccess()
+    }
+
+    private fun onLoginSuccess() = withLoadingScope {
+        API.users.reloadFromServer()
     }
 
     val canSave by derivedStateOf {
@@ -77,9 +81,9 @@ class ProfileSetupViewModel: AppScreenModel() {
     }
 
     private fun getEditedFields(): List<InputField<Any>> = listOf(
-        Pair(InputField(User.Fields.NAME, name.value.orEmpty()), profile?.name.orEmpty()),
-        Pair(InputField(User.Fields.SURNAME, surname.value.orEmpty()), profile?.surname.orEmpty()),
-        Pair(InputField(User.Fields.BIO, bio.value.orEmpty()), profile?.bio.orEmpty())).mapNotNull{ pair ->
+        Pair(InputField(User.Fields.NAME, name.orEmpty()), profile?.name.orEmpty()),
+        Pair(InputField(User.Fields.SURNAME, surname.orEmpty()), profile?.surname.orEmpty()),
+        Pair(InputField(User.Fields.BIO, bio.orEmpty()), profile?.bio.orEmpty())).mapNotNull{ pair ->
         pair.first.takeUnless{ it.value == pair.second }
     }
 

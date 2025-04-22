@@ -9,7 +9,6 @@ import net.alienminds.ethnogram.service.API
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
 import net.alienminds.ethnogram.ui.extentions.getRoot
 import net.alienminds.ethnogram.ui.screens.auth.otp.AuthOTPScreen
-import net.alienminds.ethnogram.ui.screens.session.SessionScreen
 import net.alienminds.ethnogram.utils.findActivity
 import net.alienminds.ethnogram.utils.getSuitableScreen
 

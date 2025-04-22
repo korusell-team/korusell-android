@@ -8,7 +8,7 @@ plugins {
 val versionMajor = 0
 val versionMinor = 0 //max 9
 val versionPatch = 1 //max 9
-val versionBuild = 8 //max 99
+val versionBuild = 9 //max 99
 
 android {
     namespace = "net.alienminds.ethnogram"

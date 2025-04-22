@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +51,7 @@ import net.alienminds.ethnogram.ui.extentions.rootOrThrow
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.screens.session.SessionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
+import net.alienminds.ethnogram.utils.AppConst
 import net.alienminds.ethnogram.utils.shimmerEffect
 
 class ProfileSetupScreen(
@@ -72,11 +72,10 @@ class ProfileSetupScreen(
         val navigator = LocalNavigator.rootOrThrow
         val vm = rememberScreenModel { ProfileSetupViewModel() }
         val alertNotSave = rememberAppDialogState()
-        vm.onLoginSuccess()
         var loadState by remember { mutableStateOf(false) }
 
         val photoPicker = rememberPhotoPicker(
-            maxPhoto = 5 - vm.images.size,
+            maxPhoto = AppConst.MAX_IMAGES - vm.images.size,
             onSelect = vm::addImage
         )
 
@@ -84,10 +83,11 @@ class ProfileSetupScreen(
         Spacer(Modifier.weight(1f))
 
 
-        SquareTextCircle(modifier =  Modifier.shimmerEffect(loadState, CircleShape)
-            ,vm.images) {
-            photoPicker.launch()
-        }
+        SquareTextCircle(
+            modifier = Modifier.shimmerEffect(loadState, CircleShape),
+            images = vm.images,
+            onClick = photoPicker::launch
+        )
 
         Spacer(Modifier.size(16.dp))
 
@@ -104,15 +104,17 @@ class ProfileSetupScreen(
         Spacer(Modifier.size(8.dp))
 
         InfoField(
-            modifier =  Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
-            vm.name,
-            stringResource(R.string.input_name)
+            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            value = vm.name.orEmpty(),
+            onValueChange = { vm.name = it.take(15) },
+            placeholder = stringResource(R.string.input_name)
         )
         Spacer(Modifier.size(8.dp))
         InfoField(
-            modifier =  Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
-            vm.surname,
-            stringResource(R.string.input_surname)
+            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            value = vm.surname.orEmpty(),
+            onValueChange = { vm.surname = it.take(15) },
+            placeholder = stringResource(R.string.input_surname)
         )
         Spacer(Modifier.size(24.dp))
 
@@ -120,12 +122,15 @@ class ProfileSetupScreen(
             stringResource(id = R.string.your_bio))
         Spacer(Modifier.size(8.dp))
         InfoField(
-            modifier =  Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
-            vm.bio, stringResource(R.string.your_bio_description))
+            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            value = vm.bio.orEmpty(),
+            onValueChange = { vm.bio = it.take(80) },
+            placeholder = stringResource(R.string.your_bio_description)
+        )
         Spacer(Modifier.size(8.dp))
         Text(
             modifier = Modifier.padding(start = 8.dp),
-            text = "Пример: 27yo, UI/UX дизайнер с 3+ лет опыта работы",
+            text = stringResource(R.string.bio_descr),
             style = MaterialTheme.typography.bodySmall,
             color = AppColor.gray500
         )
@@ -141,17 +146,17 @@ class ProfileSetupScreen(
             shape = MaterialTheme.shapes.large,
             onClick = {
                 if (!loadState){
-                loadState = true
-                when (vm.canSave) {
-                    true -> {
-                        vm.saveUser{
-                            navigator.replaceAll(SessionScreen())
-                            loadState = false
+                    loadState = true
+                    when (vm.canSave) {
+                        true -> {
+                            vm.saveUser{
+                                navigator.replaceAll(SessionScreen())
+                                loadState = false
+                            }
                         }
-                    }
 
-                    false -> alertNotSave.show()
-                }
+                        false -> alertNotSave.show()
+                    }
                 }
             },
             colors = ButtonDefaults.buttonColors(
@@ -195,16 +200,19 @@ class ProfileSetupScreen(
     }
 
     @Composable
-    fun SquareTextCircle(modifier: Modifier,images: List<String?>, click: () -> Unit = {}) {
+    fun SquareTextCircle(
+        modifier: Modifier,
+        images: List<String?>,
+        onClick: () -> Unit = {}
+    ) {
         Box(
             modifier = modifier
                 .size(82.dp)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    click()
-                },
+                    indication = null,
+                    onClick = onClick
+                ),
             contentAlignment = Alignment.BottomEnd
         ) {
             Box(
@@ -247,14 +255,15 @@ class ProfileSetupScreen(
 
 
     @Composable
-    private fun InfoField(modifier: Modifier,text: MutableState<String?>, placeholder: String) {
+    private fun InfoField(
+        modifier: Modifier,
+        value: String,
+        onValueChange: (String) -> Unit,
+        placeholder: String
+    ) {
         TextField(
-            value = text.value.orEmpty(),
-            onValueChange = { newValue ->
-                if (newValue.length <= 80) {
-                    text.value = newValue
-                }
-            },
+            value = value,
+            onValueChange = onValueChange,
             modifier = modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             keyboardOptions = KeyboardOptions(

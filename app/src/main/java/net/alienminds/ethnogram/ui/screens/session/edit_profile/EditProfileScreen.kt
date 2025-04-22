@@ -214,8 +214,8 @@ class EditProfileScreen: PageTransitionScreen {
                 isErrorSurname = vm.isErrorSurname,
                 loading = vm.loading,
                 onChange = { name, surname ->
-                    vm.name = name
-                    vm.surname = surname
+                    vm.name = name.take(30)
+                    vm.surname = surname.take(30)
                 }
             )
 

@@ -2,12 +2,7 @@ package net.alienminds.ethnogram.ui.screens.auth.otp
 
 import android.content.Context
 import cafe.adriel.voyager.navigator.Navigator
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.withContext
 import net.alienminds.ethnogram.service.API
-import net.alienminds.ethnogram.ui.screens.auth.profile_setup.ProfileSetupScreen
-import net.alienminds.ethnogram.ui.screens.session.SessionScreen
 import net.alienminds.ethnogram.utils.AppScreenModel
 import net.alienminds.ethnogram.utils.getSuitableScreen
 

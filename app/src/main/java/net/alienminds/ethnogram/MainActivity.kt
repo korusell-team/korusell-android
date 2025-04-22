@@ -9,15 +9,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import cafe.adriel.voyager.core.screen.Screen
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.ui.RootContent
 import net.alienminds.ethnogram.utils.AppContextWrapper
 import net.alienminds.ethnogram.utils.getSuitableScreen

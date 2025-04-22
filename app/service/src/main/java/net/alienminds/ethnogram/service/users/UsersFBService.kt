@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import net.alienminds.ethnogram.service.BuildConfig
 import net.alienminds.ethnogram.service.base.BaseService
 import net.alienminds.ethnogram.service.base.entities.DBObject
 import net.alienminds.ethnogram.service.base.entities.InputField

@@ -152,7 +152,7 @@ class ProfileScreen(
                         .padding(top = 16.dp)
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
-                    name = vm.user?.fullName.orEmpty(),
+                    fullName = vm.user?.fullName.orEmpty(),
                     city = vm.city.joinToString { it.localName },
                     phone = vm.user?.phone?.takeIf { vm.user?.phoneIsAvailable ?: false }
                 )
@@ -361,7 +361,7 @@ class ProfileScreen(
     @Composable
     private fun HeaderNameBlock(
         modifier: Modifier = Modifier,
-        name: String,
+        fullName: String,
         city: String,
         phone: String?
     ) = Row(
@@ -370,13 +370,16 @@ class ProfileScreen(
     ){
         val context = LocalContext.current
         Column(
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ){
             Text(
-                text = name,
+                text = fullName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = AppColor.gray900
+                color = AppColor.gray900,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(

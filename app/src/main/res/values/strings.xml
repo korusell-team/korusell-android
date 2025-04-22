@@ -87,7 +87,8 @@
     <string name="alert_onboarding_body">Заполните чтобы сделать аккаунт публичным</string>
     <string name="alert_public_body">• Укажите имя\n• Загрузите фото\n• Заполните Био\n• Выберите категорию</string>
     <string name="ok">Ок</string>
-    <string name="no_photo_placeholder">Фотографий нет.\nУвы и ах...</string>
+    <string name="no_photo_placeholder">Фотографий нет.\nУвы и ах…</string>
+    <string name="bio_descr">Пример: 27yo, UI/UX дизайнер с 3+ лет опыта работы</string>
 
 
 </resources>
