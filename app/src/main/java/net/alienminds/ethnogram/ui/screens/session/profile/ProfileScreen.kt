@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -119,6 +120,11 @@ class ProfileScreen(
         val toolbarAlpha by animateFloatAsState(when{
             toolbarScrollState -> 1f
             else -> 0f
+        })
+
+        val toolbarColor by animateColorAsState(when(toolbarScrollState){
+            true -> AppColor.gray50
+            false -> AppColor.gray900.copy(0.8f)
         })
 
         val toolbarTint by animateColorAsState(when{
@@ -220,7 +226,12 @@ class ProfileScreen(
 
         Toolbar(
             modifier = Modifier
-                .background(AppColor.gray50.copy(toolbarAlpha))
+                .background(Brush.verticalGradient(listOf(
+                    toolbarColor,
+//                    toolbarColor,
+                    AppColor.gray50.copy(toolbarAlpha)
+                )))
+//                .background(AppColor.gray50.copy(toolbarAlpha))
                 .statusBarsPadding(),
             isMe = vm.isMe,
             isFavorite = vm.isFavorite,
