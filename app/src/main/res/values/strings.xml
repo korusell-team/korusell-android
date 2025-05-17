@@ -89,6 +89,19 @@
     <string name="ok">Ок</string>
     <string name="no_photo_placeholder">Фотографий нет.\nУвы и ах…</string>
     <string name="bio_descr">Пример: 27yo, UI/UX дизайнер с 3+ лет опыта работы</string>
+    <string name="news">Новости</string>
+    <string name="my_posts">Мои Посты</string>
+    <string name="feed">НОВОСТЬ</string>
+    <string name="event">СОБЫТИЕ</string>
+    <string name="ads">РЕКЛАМА</string>
+    <string name="exit_without_save">Выйти без сохранения?</string>
+    <string name="exit_without_save_descr">Все данные будут утеряны. Вы уверены что хотите выйти?</string>
+    <string name="yes_exit">Да, Выйти</string>
+    <string name="discount">Скидка: %1$s%%</string>
+    <string name="valid_before">Действителен до: %1$s</string>
+    <string name="end">Конец: %1$s</string>
+    <string name="start">Начало: %1$s</string>
+    <string name="tape">Лента</string>
 
 
 </resources>

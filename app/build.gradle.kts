@@ -6,9 +6,9 @@ plugins {
 }
 
 val versionMajor = 0
-val versionMinor = 0 //max 9
-val versionPatch = 1 //max 9
-val versionBuild = 9 //max 99
+val versionMinor = 1 //max 9
+val versionPatch = 0 //max 9
+val versionBuild = 0 //max 99
 
 android {
     namespace = "net.alienminds.ethnogram"
@@ -68,6 +68,9 @@ dependencies {
     implementation(libs.cloudy)
     implementation(libs.androidx.core.splashscreen)
 
+    //Time Formater
+    implementation(libs.prettytime)
+
     //Navigation
     implementation(libs.voyager.navigator)
     implementation(libs.voyager.transitions)
@@ -77,12 +80,9 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(project(":app:service"))
 
-    //Tests
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    //Koin DI
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+
 }

@@ -18,24 +18,26 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import net.alienminds.ethnogram.R
+import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.ui.extentions.rootOrThrow
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.screens.auth.phone.AuthPhoneScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
-import net.alienminds.ethnogram.utils.AppLaunchServiceImpl
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class OnboardingScreen(
-) : PageTransitionScreen {
+) : PageTransitionScreen, KoinComponent {
+
+    private val prefsRepo by inject<PrefsRepository>()
 
     override val position: Int
         get() = 1
@@ -48,14 +50,7 @@ class OnboardingScreen(
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-
-        val ctx = LocalContext.current
         val navigator = LocalNavigator.rootOrThrow
-
-        LaunchedEffect(Unit) {
-            AppLaunchServiceImpl(ctx).markLaunched()
-        }
-
 
         Spacer(Modifier.statusBarsPadding())
         Spacer(Modifier.weight(1f))
@@ -93,8 +88,8 @@ class OnboardingScreen(
                 .fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             onClick = {
+                prefsRepo.isFirstLaunch = false
                 navigator.replaceAll(AuthPhoneScreen())
-
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = AppColor.blueGray800,

@@ -16,30 +16,39 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import cafe.adriel.voyager.core.screen.Screen
 import net.alienminds.ethnogram.ui.RootContent
 import net.alienminds.ethnogram.utils.AppContextWrapper
-import net.alienminds.ethnogram.utils.getSuitableScreen
+import net.alienminds.ethnogram.utils.UserStateProvider
+import net.alienminds.ethnogram.utils.getScreen
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+
+    private val userStateProvider by inject<UserStateProvider>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashscreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
         var suitableScreen by mutableStateOf<Screen?>(null)
+
         splashscreen.setKeepOnScreenCondition { suitableScreen == null }
 
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Black.toArgb()),
-            navigationBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Black.toArgb())
-        )
+        setupEdgeToEdge()
 
         setContent {
             LaunchedEffect(Unit) {
-                suitableScreen = getSuitableScreen(this@MainActivity)
+                val userState = userStateProvider.getUserState()
+                suitableScreen = userState.getScreen()
             }
             suitableScreen?.let {
                 RootContent(it)
             }
         }
     }
+
+    private fun setupEdgeToEdge() = enableEdgeToEdge(
+        statusBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Black.toArgb()),
+        navigationBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Black.toArgb())
+    )
 
 
     override fun attachBaseContext(base: Context?) {

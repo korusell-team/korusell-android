@@ -1,52 +1,45 @@
 package net.alienminds.ethnogram.ui.screens.auth.phone
 
 import android.content.Context
-import cafe.adriel.voyager.core.model.StateScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.navigator.Navigator
-import kotlinx.coroutines.launch
-import net.alienminds.ethnogram.service.API
+import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
-import net.alienminds.ethnogram.ui.extentions.getRoot
+import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.ui.screens.auth.otp.AuthOTPScreen
+import net.alienminds.ethnogram.utils.AppScreenModel
+import net.alienminds.ethnogram.utils.UserStateProvider
 import net.alienminds.ethnogram.utils.findActivity
-import net.alienminds.ethnogram.utils.getSuitableScreen
+import net.alienminds.ethnogram.utils.phoneToFbPhone
+import org.koin.core.component.inject
 
-class AuthPhoneViewModel: StateScreenModel<AuthPhoneViewModel.Companion.State>(State()) {
+class AuthPhoneViewModel: AppScreenModel() {
+
+    private val authRepo by inject<AuthRepository>()
+    private val userStateProvider by inject<UserStateProvider>()
+
+    var phone by mutableStateOf("")
 
     fun signIn(
         context: Context,
-        navigator: Navigator,
-        phoneNumber: String,
-        callback: ()->Unit
-    ) = screenModelScope.launch{
+        navigator: Navigator
+    ) = launchWithLoading {
         context.findActivity()?.let { activity ->
-            mutableState.value = State(loading = true)
-            API.auth.signInByPhone(
-                phoneNumber = phoneNumber,
+            authRepo.signInByPhone(
+                phoneNumber = phoneToFbPhone(phone),
                 activity = activity
-            ).apply {
-                mutableState.value = State(
-                    errorMessage = error?.localizedMessage?: error?.message
-                )
-                if (isSuccess) {
-                    (data as? SignInByPhoneResult.Completed)?.run {
-                        navigator.getRoot().replaceAll(getSuitableScreen(context))
-                    }
-                    (data as? SignInByPhoneResult.NeedOTP)?.run {
-                        navigator.push(AuthOTPScreen(verificationId))
-                    }
+            ).onFailure {
+                error = it
+            }.onSuccess{ when(it){
+                is SignInByPhoneResult.Completed -> {
+                    val userState = userStateProvider.getUserState()
+                    navigator.navigateByUserState(userState)
                 }
-                callback()
-            }
+                is SignInByPhoneResult.NeedOTP -> navigator.push(AuthOTPScreen(it.verificationId))
+            } }
+
         }
     }
-
-    companion object {
-        data class State(
-            val loading: Boolean = false,
-            val errorMessage: String? = null
-        )
-    }
-
 }

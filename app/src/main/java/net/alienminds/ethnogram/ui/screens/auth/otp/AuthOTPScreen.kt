@@ -20,14 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -53,12 +47,8 @@ class AuthOTPScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
 
-        val ctx = LocalContext.current
-        val rootNavigator = LocalNavigator.rootOrThrow
-        val vm = rememberScreenModel { AuthOTPViewModel{ ctx } }
-
-        var otp by remember { mutableStateOf("") }
-        val loadState = remember { mutableStateOf(false) }
+        val navigator = LocalNavigator.rootOrThrow
+        val vm = rememberScreenModel { AuthOTPViewModel(verificationId) }
 
         BackButton(
             modifier = Modifier.statusBarsPadding(),
@@ -68,27 +58,18 @@ class AuthOTPScreen(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth(),
-            otp = otp,
-            load = loadState,
-            onOtpChange = { otp = it }
+            otpCode = vm.otpCode,
+            loading = vm.loading,
+            onOtpChange = { vm.otpCode = it }
         )
         FooterContent(
             modifier = Modifier
                 .navigationBarsPadding()
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = otp.length == 6,
-            load = loadState,
-            onSignIn = {
-                loadState.value = true
-                vm.signIn(
-                    rootNavigator = rootNavigator,
-                    verificationId = verificationId,
-                    otpCode = otp
-                ) {
-                    loadState.value = false
-                }
-            },
+            enabled = vm.otpCode.length == 6,
+            loading = vm.loading,
+            onSignIn = { vm.signIn(navigator) },
             onResendCode = vm::resendCode
         )
     }
@@ -96,8 +77,8 @@ class AuthOTPScreen(
     @Composable
     private fun FieldContent(
         modifier: Modifier = Modifier,
-        otp: String,
-        load: MutableState<Boolean>,
+        otpCode: String,
+        loading: Boolean,
         onOtpChange: (String) -> Unit,
     ) = Column(
         modifier = modifier
@@ -118,8 +99,8 @@ class AuthOTPScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
         OtpTextField(
-            value = otp,
-            load = load,
+            value = otpCode,
+            loading = loading,
             onValueChange = onOtpChange
         )
     }
@@ -128,7 +109,7 @@ class AuthOTPScreen(
     private fun FooterContent(
         modifier: Modifier = Modifier,
         enabled: Boolean,
-        load: MutableState<Boolean>,
+        loading: Boolean,
         onSignIn: () -> Unit,
         onResendCode: () -> Unit,
     ) = Column(
@@ -138,7 +119,7 @@ class AuthOTPScreen(
     ) {
         Button(
             modifier = Modifier
-                .shimmerEffect(load.value, MaterialTheme.shapes.large)
+                .shimmerEffect(loading, MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .height(54.dp),
             shape = MaterialTheme.shapes.large,

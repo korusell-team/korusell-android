@@ -1,42 +1,35 @@
 package net.alienminds.ethnogram.ui.screens.auth.otp
 
-import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.navigator.Navigator
-import net.alienminds.ethnogram.service.API
+import net.alienminds.ethnogram.service.auth.AuthRepository
+import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.utils.AppScreenModel
-import net.alienminds.ethnogram.utils.getSuitableScreen
+import net.alienminds.ethnogram.utils.UserStateProvider
+import org.koin.core.component.inject
 
 internal class AuthOTPViewModel(
-    private val contextRequester: () -> Context
+    private val verificationId: String
 ): AppScreenModel(){
 
-    private val context
-        get() = contextRequester()
+    private val authRepo by inject<AuthRepository>()
+    private val userStateProvider by inject<UserStateProvider>()
+
+    var otpCode by mutableStateOf("")
+
 
     fun signIn(
-        rootNavigator: Navigator,
-        verificationId: String,
-        otpCode: String,
-        callback: () -> Unit = {}
-    ) = withLoadingScope{
-        val result = API.auth.confirmPhone(verificationId, otpCode)
-        error = result.error
-
-        if (result.isSuccess) {
-//            val firebaseUser = API.auth.currentUser ?: return@withLoadingScope
-            rootNavigator.replaceAll(getSuitableScreen(context))
-
-//            API.users.reloadFromServer()
-//            val existingUser = withContext(Dispatchers.IO) {
-//              API.users.getUser(firebaseUser.uid).firstOrNull()
-//            }
-//            if (existingUser == null) {
-//                rootNavigator.replaceAll(ProfileSetupScreen())
-//            } else {
-//                rootNavigator.replaceAll(SessionScreen())
-//            }
-        }
-        callback()
+        navigator: Navigator
+    ) = launchWithLoading{
+        authRepo.confirmPhone(verificationId, otpCode)
+            .onFailure {
+                error = it
+            }.onSuccess {
+                val userState = userStateProvider.getUserState()
+                navigator.navigateByUserState(userState)
+            }
     }
 
     fun resendCode(){

@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
@@ -24,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,18 +37,16 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.job
 import net.alienminds.ethnogram.ui.theme.AppColor
-import net.alienminds.ethnogram.ui.theme.EthnogramTheme
 import net.alienminds.ethnogram.utils.shimmerEffect
 
 @Composable
 internal fun OtpTextField(
     modifier: Modifier = Modifier,
     value: String,
-    load:MutableState<Boolean>,
+    loading: Boolean,
     onValueChange: (String) -> Unit,
     keyboardOptions: KeyboardOptions = KeyboardOptions(
         keyboardType = KeyboardType.NumberPassword
@@ -107,7 +101,7 @@ internal fun OtpTextField(
                 repeat(length) { index ->
                     Box(
                         modifier = Modifier
-                            .shimmerEffect(load.value, MaterialTheme.shapes.medium)
+                            .shimmerEffect(loading, MaterialTheme.shapes.medium)
                             .widthIn(max = 48.dp)
                             .weight(1f, true)
                             .aspectRatio(0.75f)
@@ -156,26 +150,3 @@ data class OtpTextFieldColors(
     val unfocusedTextColor: Color = focusedTextColor,
     val cursorColor: Color = AppColor.lightBlue800
 )
-
-@Preview
-@Composable
-private fun PreviewOtpTextField() = EthnogramTheme{
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ){
-        var otp by remember { mutableStateOf("") }
-        OtpTextField(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .fillMaxWidth(),
-            value = otp,
-
-            load = remember { mutableStateOf(false) },
-            autoFocus = false,
-            onValueChange = { otp = it }
-        )
-    }
-}

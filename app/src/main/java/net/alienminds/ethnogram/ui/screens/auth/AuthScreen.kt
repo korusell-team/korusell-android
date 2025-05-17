@@ -6,7 +6,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import net.alienminds.ethnogram.ui.extentions.transitions.SlidePageTransition
 import net.alienminds.ethnogram.ui.screens.auth.phone.AuthPhoneScreen
 
-
+//TODO("Вынести в отдельный модуль")
 class AuthScreen: Screen {
 
     @Composable

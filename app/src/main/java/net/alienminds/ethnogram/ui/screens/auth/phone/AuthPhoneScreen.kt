@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,12 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -52,10 +44,8 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
-import net.alienminds.ethnogram.ui.theme.EthnogramTheme
 import net.alienminds.ethnogram.utils.UniversalPhoneVisualTransformation
 import net.alienminds.ethnogram.utils.openLink
-import net.alienminds.ethnogram.utils.phoneToFbPhone
 import net.alienminds.ethnogram.utils.shimmerEffect
 
 internal class AuthPhoneScreen: PageTransitionScreen {
@@ -70,11 +60,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     ){
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        var phone by remember { mutableStateOf("") }
-        val loadState = remember { mutableStateOf(false) }
-
         val vm = rememberScreenModel { AuthPhoneViewModel() }
-        val state by vm.state.collectAsState()
 
         Spacer(Modifier
             .fillMaxWidth()
@@ -84,10 +70,10 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth(),
-            error = state.errorMessage,
-            load = loadState,
-            phone = phone,
-            onPhoneChange = { phone = it }
+            error = vm.errorMessage,
+            loading = vm.loading,
+            phone = vm.phone,
+            onPhoneChange = { vm.phone = it }
         )
 
         FooterContent(
@@ -95,25 +81,18 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .navigationBarsPadding()
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = phone.length >= 9,
-            load = loadState,
-            onNext = {
-                loadState.value = true
-                vm.signIn(context, navigator,   phoneToFbPhone(phone)){
-                    loadState.value = false
-                }
-            }
+            enabled = vm.phone.length >= 9,
+            loading = vm.loading,
+            onNext = { vm.signIn(context, navigator) }
         )
 
     }
-
-
 
     @Composable
     private fun FieldContent(
         modifier: Modifier = Modifier,
         error: String?,
-        load: MutableState<Boolean>,
+        loading: Boolean,
         phone: String,
         onPhoneChange: (String) -> Unit
     ) = Column(
@@ -142,7 +121,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 onPhoneChange(newValue.filter { it.isDigit() }.take(12))
             },
             modifier = Modifier
-                .shimmerEffect(load.value, MaterialTheme.shapes.large)
+                .shimmerEffect(loading, MaterialTheme.shapes.large)
                 .fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -185,7 +164,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     private fun FooterContent(
         modifier: Modifier = Modifier,
         enabled: Boolean,
-        load: MutableState<Boolean>,
+        loading: Boolean,
         onNext: () -> Unit
     ) = Column(
         modifier = modifier,
@@ -208,7 +187,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         Button(
             modifier = Modifier
                 .padding(vertical = 16.dp)
-                .shimmerEffect(load.value, MaterialTheme.shapes.large)
+                .shimmerEffect(loading, MaterialTheme.shapes.large)
                 .imePadding()
                 .fillMaxWidth()
                 .height(54.dp),
@@ -244,20 +223,5 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     ){
         OBJECTIONABLE_CONTENT(R.string.terms_objectionable_link, R.string.terms_objectionable_text),
         CONFIDENTIALITY(R.string.terms_confidentiality_link, R.string.terms_confidentiality_text)
-    }
-}
-
-
-@Preview
-@Composable
-private fun PreviewAuthPhoneScreen(){
-    EthnogramTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            remember { AuthPhoneScreen() }.Content()
-        }
     }
 }
