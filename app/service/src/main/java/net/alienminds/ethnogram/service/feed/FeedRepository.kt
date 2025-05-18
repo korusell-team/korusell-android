@@ -1,46 +1,59 @@
 package net.alienminds.ethnogram.service.feed
 
-import android.util.Log
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenSource
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.SnapshotListenOptions
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.feed.entities.Feed
 import net.alienminds.ethnogram.service.user.UserRepository
+import net.alienminds.ethnogram.service.utils.FirestoreProvider
+import net.alienminds.ethnogram.service.utils.addCacheListener
 
 class FeedRepository internal constructor(
     private val userRepo: UserRepository,
-    private val isScope: CoroutineScope,
-    firestore: FirebaseFirestore = Firebase.firestore
+    private val authRepo: AuthRepository,
+    private val ioScope: CoroutineScope,
+    private val firestoreProvider: FirestoreProvider
 ): BaseRepository(){
 
-    private val collection = firestore.collection("posts")
+    private val collection
+        get() = firestoreProvider.get().collection("posts")
+
+    private val listenerMutex = Mutex()
+    private var listenerRegistration: ListenerRegistration? = null
+
+    @Volatile
+    private var isSyncFeeds = false
 
     private val _feedsFlow = MutableStateFlow<List<Feed>?>(null)
     val feedsFlow: StateFlow<List<Feed>?> get() = _feedsFlow
 
     init {
-        listenCache()
+        waitLogout()
     }
 
     suspend fun getFeeds() = apiQuery{
-        feedsFlow.value?.let {
-            return@apiQuery it
+        ensureListening()
+        if (isSyncFeeds) {
+            feedsFlow.value?.let { return@apiQuery it }
         }
-        collection
+        val result = collection
             .get()
             .await()
             .documents
@@ -52,12 +65,16 @@ class FeedRepository internal constructor(
                     it.createdAt
                 }
             )
+        isSyncFeeds = true
+        return@apiQuery result
     }
 
     suspend fun getFeed(
         feedId: String
     ) = apiQuery{
-        feedsFlow.value?.find { it.id == feedId }?.let { return@apiQuery it }
+        if (isSyncFeeds) {
+            feedsFlow.value?.find { it.id == feedId }?.let { return@apiQuery it }
+        }
 
         collection
             .document(feedId)
@@ -137,29 +154,52 @@ class FeedRepository internal constructor(
         return task.isSuccessful
     }
 
-    private fun listenCache(){
-        isScope.launch {
-            collection.addSnapshotListener(
-                SnapshotListenOptions.Builder()
-                    .setMetadataChanges(MetadataChanges.INCLUDE)
-                    .setSource(ListenSource.CACHE)
-                    .build()
-            ) { snapshot, error ->
-                if (error != null) {
-                    Log.w(logTag, "Listen failed.", error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null && snapshot.isEmpty.not()) {
-                    val feeds = snapshot.documents.mapNotNull(::Feed)
-                    _feedsFlow.value = feeds.sortedWith(
-                        compareByDescending<Feed>{
-                            it.isPromotedNow
-                        }.thenByDescending {
-                            it.createdAt
-                        }
-                    )
+    private fun waitLogout(){
+        authRepo.logoutFlow.onEach {
+            ioScope.launch {
+                stopListening()
+                clearCache()
+            }
+        }.launchIn(ioScope)
+    }
 
-                }
+    private fun clearCache(){
+        _feedsFlow.value = null
+        isSyncFeeds = false
+    }
+
+    private suspend fun stopListening() {
+        listenerMutex.withLock {
+            listenerRegistration?.remove()
+            listenerRegistration = null
+        }
+    }
+
+    private suspend fun ensureListening() {
+        listenerMutex.withLock {
+            if (listenerRegistration == null) {
+                listenCache()
+            }
+        }
+    }
+
+    private fun listenCache(){
+        val registration = collection.addCacheListener { snapshot, error ->
+            if (snapshot != null && snapshot.isEmpty.not()) {
+                val feeds = snapshot.documents.mapNotNull(::Feed)
+                _feedsFlow.value = feeds.sortedWith(
+                    compareByDescending<Feed>{
+                        it.isPromotedNow
+                    }.thenByDescending {
+                        it.createdAt
+                    }
+                )
+
+            }
+        }
+        ioScope.launch {
+            listenerMutex.withLock {
+                listenerRegistration = registration
             }
         }
     }

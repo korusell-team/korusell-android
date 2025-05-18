@@ -1,6 +1,7 @@
 package net.alienminds.ethnogram.service.auth
 
 import android.app.Activity
+import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
@@ -8,14 +9,21 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.auth.PhoneVerificationCallback.PhoneVerificationState
 import net.alienminds.ethnogram.service.auth.entities.CurrentUser
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
 import net.alienminds.ethnogram.service.base.BaseRepository
+import net.alienminds.ethnogram.service.utils.FirestoreProvider
+import net.alienminds.ethnogram.service.utils.clearAppCache
 import java.util.concurrent.TimeUnit
 
-class AuthRepository internal constructor(): BaseRepository() {
+class AuthRepository internal constructor(
+    private val firestoreProvider: FirestoreProvider,
+    private val context: Context
+): BaseRepository() {
 
     private val auth = Firebase.auth
 
@@ -24,6 +32,9 @@ class AuthRepository internal constructor(): BaseRepository() {
 
     val currentUser
         get() = auth.currentUser?.let { CurrentUser(it) }
+
+    private val _logoutFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    internal val logoutFlow = _logoutFlow.asSharedFlow()
 
 
 
@@ -65,9 +76,12 @@ class AuthRepository internal constructor(): BaseRepository() {
     }
 
 
-    suspend fun logout() = apiQuery{
-        Log.d(logTag, "signOut")
+    suspend fun logout(): Result<Unit> = apiQuery{
         Firebase.auth.signOut()
+        firestoreProvider.clearFirestoreCache()
+        context.clearAppCache()
+        _logoutFlow.emit(Unit)
+        Log.d(logTag, "Logout Success")
     }
 
 

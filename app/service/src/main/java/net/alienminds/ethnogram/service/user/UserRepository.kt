@@ -1,15 +1,13 @@
 package net.alienminds.ethnogram.service.user
 
 import android.net.Uri
-import android.util.Log
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenSource
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.SnapshotListenOptions
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
@@ -19,23 +17,39 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.base.entities.InputField
 import net.alienminds.ethnogram.service.user.entities.User
+import net.alienminds.ethnogram.service.utils.FirestoreProvider
+import net.alienminds.ethnogram.service.utils.addCacheListener
 import java.util.UUID
 
 class UserRepository internal constructor(
     private val authRepository: AuthRepository,
     private val ioScope: CoroutineScope,
     private val storage: FirebaseStorage = Firebase.storage,
-    firestore: FirebaseFirestore = Firebase.firestore,
+    private val firestoreProvider: FirestoreProvider,
 ): BaseRepository() {
 
-    private val collection = firestore.collection("users")
+    private val collection
+        get() = firestoreProvider.get().collection("users")
+
+    private val listenerMutex = Mutex()
+    private var listenerRegistration: ListenerRegistration? = null
+
+    @Volatile
+    private var isSyncMe = false
+
+    @Volatile
+    private var isSyncPublic = false
 
     private val _meFlow = MutableStateFlow<User?>(null)
     val meFlow: StateFlow<User?> get() = _meFlow
@@ -45,19 +59,22 @@ class UserRepository internal constructor(
 
 
 
-    init { listenCache() }
+    init { waitLogout() }
 
     suspend fun getMe() = apiQuery{
+        ensureListening()
         val currentUser = authRepository.currentUser
             ?: throw IllegalStateException("User is not signed in")
 
         val phone = currentUser.phoneNumber
             ?: throw IllegalStateException("User phone is null")
 
-        meFlow.value?.takeIf { it.phone == phone }?.let { return@apiQuery it }
-        publicUsersFlow.value?.find { it.phone == phone }?.let { return@apiQuery it }
+        if (isSyncMe) {
+            meFlow.value?.takeIf { it.phone == phone }?.let { return@apiQuery it }
+            publicUsersFlow.value?.find { it.phone == phone }?.let { return@apiQuery it }
+        }
 
-        collection
+        val result = collection
             .whereEqualTo(User.Field.PHONE.key, phone)
             .limit(1)
             .get()
@@ -66,6 +83,8 @@ class UserRepository internal constructor(
             .firstOrNull()
             ?.let(::User)
             ?: throw NoSuchElementException("User not found in Firestore")
+        isSyncMe = true
+        return@apiQuery result
     }
 
 
@@ -101,8 +120,13 @@ class UserRepository internal constructor(
     suspend fun getUser(
         uid: String
     ) = apiQuery{
-        publicUsersFlow.value?.find { it.uid == uid }?.let { return@apiQuery it }
-        meFlow.value?.takeIf { it.uid == uid }?.let { return@apiQuery it }
+        ensureListening()
+        if (isSyncPublic) {
+            publicUsersFlow.value?.find { it.uid == uid }?.let { return@apiQuery it }
+        }
+        if (isSyncMe) {
+            meFlow.value?.takeIf { it.uid == uid }?.let { return@apiQuery it }
+        }
 
         collection
             .whereEqualTo(User.Field.UID.key, uid)
@@ -118,13 +142,16 @@ class UserRepository internal constructor(
 
 
     suspend fun getPublicUsers() = apiQuery {
-        publicUsersFlow.value?.let {
-            return@apiQuery it.sortedWith(
-                compareByDescending<User> { it.priority ?: 0L }
-                    .thenByDescending { it.likes.size }
-            )
+        ensureListening()
+        if (isSyncPublic) {
+            publicUsersFlow.value?.let {
+                return@apiQuery it.sortedWith(
+                    compareByDescending<User> { it.priority ?: 0L }
+                        .thenByDescending { it.likes.size }
+                )
+            }
         }
-        collection
+        val result = collection
             .onlyPublic()
             .get()
             .await()
@@ -134,6 +161,8 @@ class UserRepository internal constructor(
                 compareByDescending<User> { it.priority ?: 0L }
                     .thenByDescending { it.likes.size }
             )
+        isSyncPublic = true
+        return@apiQuery result
     }
 
     suspend fun updateMe(
@@ -246,31 +275,53 @@ class UserRepository internal constructor(
     }
 
 
-    private fun listenCache(){
-        ioScope.launch {
-            collection.addSnapshotListener(
-                SnapshotListenOptions.Builder()
-                    .setMetadataChanges(MetadataChanges.INCLUDE)
-                    .setSource(ListenSource.CACHE)
-                    .build()
-            ) { snapshot, error ->
-                if (error != null) {
-                    Log.w(logTag, "Listen failed.", error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null && snapshot.isEmpty.not()) {
-                    val users = snapshot.documents.mapNotNull(::User)
-                    _publicUsersFlow.value = users
-                        .filter { it.isPublic == true }
-                        .sortedWith(
-                            compareByDescending<User> { it.priority ?: 0L }
-                                .thenByDescending { it.likes.size }
-                        )
-                    authRepository.currentUser?.phoneNumber?.let { phone ->
-                        _meFlow.value = users.find { it.phone == phone }
-                    }
+    private fun waitLogout(){
+        authRepository.logoutFlow.onEach {
+            stopListening()
+            clearCache()
+        }.launchIn(ioScope)
+    }
 
+    private fun clearCache(){
+        _meFlow.value = null
+        _publicUsersFlow.value = null
+        isSyncMe = false
+        isSyncPublic = false
+    }
+
+    private suspend fun stopListening() {
+        listenerMutex.withLock {
+            listenerRegistration?.remove()
+            listenerRegistration = null
+        }
+    }
+
+    private suspend fun ensureListening() {
+        listenerMutex.withLock {
+            if (listenerRegistration == null) {
+                listenCache()
+            }
+        }
+    }
+
+    private fun listenCache(){
+        val registration = collection.addCacheListener { snapshot, error ->
+            if (snapshot != null && snapshot.isEmpty.not()) {
+                val users = snapshot.documents.mapNotNull(::User)
+                _publicUsersFlow.value = users
+                    .filter { it.isPublic == true }
+                    .sortedWith(
+                        compareByDescending<User> { it.priority ?: 0L }
+                            .thenByDescending { it.likes.size }
+                    )
+                authRepository.currentUser?.phoneNumber?.let { phone ->
+                    _meFlow.value = users.find { it.phone == phone }
                 }
+            }
+        }
+        ioScope.launch {
+            listenerMutex.withLock {
+                listenerRegistration = registration
             }
         }
     }

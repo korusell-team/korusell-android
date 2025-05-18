@@ -1,19 +1,20 @@
 package net.alienminds.ethnogram.service.data
 
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.data.entities.Category
 import net.alienminds.ethnogram.service.data.entities.City
+import net.alienminds.ethnogram.service.utils.FirestoreProvider
 
 class DataRepository internal constructor(
-    firestore: FirebaseFirestore = Firebase.firestore
+    private val firestoreProvider: FirestoreProvider
 ): BaseRepository() {
 
-    private val categoriesCollection = firestore.collection("cats")
-    private val citiesCollection = firestore.collection("cities")
+    private val categoriesCollection
+        get() = firestoreProvider.get().collection("cats")
+
+    private val citiesCollection
+        get() = firestoreProvider.get().collection("cities")
 
     private var cachedCategories: List<Category>? = null
     private var cachedCities: List<City>? = null
