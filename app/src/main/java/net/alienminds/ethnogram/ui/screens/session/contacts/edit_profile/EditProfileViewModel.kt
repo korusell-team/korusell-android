@@ -248,7 +248,7 @@ class EditProfileViewModel: AppScreenModel() {
         Pair(
             InputField(
                 it.key.field,
-                it.value.orEmpty()
+                it.value?.filter { it != ' ' && it != '@' }.orEmpty()
             ),
             profile?.social?.socialMap?.getOrDefault(it.key, "").orEmpty()
         )

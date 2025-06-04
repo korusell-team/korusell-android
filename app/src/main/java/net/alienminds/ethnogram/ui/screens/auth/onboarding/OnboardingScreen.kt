@@ -24,10 +24,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.ui.extentions.rootOrThrow
+import net.alienminds.ethnogram.ui.extentions.shimmerState
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.screens.auth.phone.AuthPhoneScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
@@ -36,8 +38,6 @@ import org.koin.core.component.inject
 
 class OnboardingScreen(
 ) : PageTransitionScreen, KoinComponent {
-
-    private val prefsRepo by inject<PrefsRepository>()
 
     override val position: Int
         get() = 1
@@ -51,6 +51,7 @@ class OnboardingScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         val navigator = LocalNavigator.rootOrThrow
+        val vm = rememberScreenModel { OnboardingModel{ navigator } }
 
         Spacer(Modifier.statusBarsPadding())
         Spacer(Modifier.weight(1f))
@@ -65,14 +66,14 @@ class OnboardingScreen(
         Spacer(Modifier.size(24.dp))
         Text(
             modifier = Modifier.padding(start = 8.dp),
-            text = stringResource(id= R.string.app_name),
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
             color = AppColor.gray900
         )
         Spacer(Modifier.size(8.dp))
         Text(
             modifier = Modifier.padding(start = 8.dp),
-            text = stringResource(id= R.string.onboarding_body),
+            text = stringResource(R.string.onboarding_body),
             style = MaterialTheme.typography.titleMedium,
             color = AppColor.gray900
         )
@@ -85,12 +86,11 @@ class OnboardingScreen(
                     elevation = 0.dp,
                     shape = MaterialTheme.shapes.large
                 )
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .shimmerState(vm.loading),
             shape = MaterialTheme.shapes.large,
-            onClick = {
-                prefsRepo.isFirstLaunch = false
-                navigator.replaceAll(AuthPhoneScreen())
-            },
+            onClick = { vm.goNext() },
+            enabled = vm.loading.not(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AppColor.blueGray800,
                 contentColor = AppColor.white
@@ -103,11 +103,9 @@ class OnboardingScreen(
             )
         }
 
-        Spacer(
-            Modifier
-                .navigationBarsPadding()
-                .height(48.dp)
-        )
+        Spacer(Modifier
+            .navigationBarsPadding()
+            .height(48.dp))
 
     }
 

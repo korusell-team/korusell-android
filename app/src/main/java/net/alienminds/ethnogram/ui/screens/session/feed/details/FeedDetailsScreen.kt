@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,12 +44,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.service.feed.entities.EventDetails
 import net.alienminds.ethnogram.service.feed.entities.FeedType
 import net.alienminds.ethnogram.service.feed.entities.PromoDetail
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
+import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.components.CoverImage
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedAuthor
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedTypeMark
@@ -69,6 +72,7 @@ internal class FeedDetailsScreen(
     override fun Content() = Column(
         modifier = Modifier.fillMaxSize()
     ){
+        val navigator = LocalNavigator.current
         val vm = rememberScreenModel { FeedDetailsModel(feedId) }
         val uriHandler = LocalUriHandler.current
         Toolbar(
@@ -87,7 +91,7 @@ internal class FeedDetailsScreen(
                     CoverImage(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1.3f),
+                            .aspectRatio(1f),
                         imageUrl = vm.feed?.imageUrl,
                     )
                     vm.feed?.type?.let { type ->
@@ -145,12 +149,16 @@ internal class FeedDetailsScreen(
                 )
             }
 
-            //Card
             FeedAuthor(
                 modifier = Modifier
                     .padding(top = 16.dp)
-                    .padding(horizontal = 16.dp),
-                author = vm.feed?.author
+                    .padding(horizontal = 16.dp)
+                    .clickable{
+                        vm.feed?.authorId?.let {
+                            navigator?.push(ProfileScreen(it))
+                        }
+                    },
+                author = vm.author
             )
             Row(
                 modifier = Modifier
@@ -281,7 +289,7 @@ internal class FeedDetailsScreen(
     ) {
         BackButton(
             modifier = Modifier.align(Alignment.CenterStart),
-            text = stringResource(R.string.news),
+            text = stringResource(R.string.tape),
             tint = AppColor.blue600
         )
 //        Text(

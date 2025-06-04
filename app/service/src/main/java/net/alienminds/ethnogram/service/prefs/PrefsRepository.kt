@@ -11,7 +11,6 @@ class PrefsRepository internal constructor(
 
     var isFirstLaunch: Boolean by BooleanPreference(prefs, KEY_FIRST_LAUNCH, true)
 
-
     companion object{
         private const val PREFS_NAME = "app_prefs"
         private const val KEY_FIRST_LAUNCH = "is_first_launch"

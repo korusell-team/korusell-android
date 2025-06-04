@@ -11,7 +11,7 @@
 <!--    SignIn-->
     <string name="phone_number">Номер телефона</string>
     <string name="get_sms">Получить СМС</string>
-    <string name="auth_phone_description">Войдите или Зарегестрируйтесь указав номер телефона</string>
+    <string name="auth_phone_description">Войдите или зарегистрируйтесь указав номер телефона</string>
     <string name="telegram_placeholder">имя пользователя</string>
     <string name="phone_placeholder">+XXX XX XX XX XX</string>
     <string name="terms_objectionable_text">"Политикой нежелательного контента "</string>
@@ -102,6 +102,7 @@
     <string name="end">Конец: %1$s</string>
     <string name="start">Начало: %1$s</string>
     <string name="tape">Лента</string>
+    <string name="no_author">Без автора</string>
 
 
 </resources>

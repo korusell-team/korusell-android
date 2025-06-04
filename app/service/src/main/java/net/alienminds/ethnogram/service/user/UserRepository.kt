@@ -27,6 +27,7 @@ import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.base.entities.InputField
+import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import net.alienminds.ethnogram.service.utils.addCacheListener
@@ -51,11 +52,17 @@ class UserRepository internal constructor(
     @Volatile
     private var isSyncPublic = false
 
+    @Volatile
+    private var syncUsers = mutableListOf<String>()//list uid
+
     private val _meFlow = MutableStateFlow<User?>(null)
     val meFlow: StateFlow<User?> get() = _meFlow
 
     private val _publicUsersFlow = MutableStateFlow<List<User>?>(null)
     val publicUsersFlow: StateFlow<List<User>?> get() = _publicUsersFlow
+
+    private val _usersFlow = MutableStateFlow<List<User>?>(null)
+    val usersFlow: StateFlow<List<User>?> get() = _usersFlow
 
 
 
@@ -127,7 +134,9 @@ class UserRepository internal constructor(
         if (isSyncMe) {
             meFlow.value?.takeIf { it.uid == uid }?.let { return@apiQuery it }
         }
-
+        if (syncUsers.contains(uid)){
+            usersFlow.value?.find { it.uid == uid }?.let { return@apiQuery it }
+        }
         collection
             .whereEqualTo(User.Field.UID.key, uid)
             .limit(1)
@@ -136,19 +145,68 @@ class UserRepository internal constructor(
             .documents
             .firstOrNull()
             ?.let(::User)
+            ?.also{ it.uid?.let(syncUsers::add) }
             ?: throw NoSuchElementException("User not found in Firestore")
     }
 
+    suspend fun getAuthor(
+        authorId: String
+    ) = apiQuery{
+        getUser(authorId).getOrNull()?.let {
+            FeedAuthor(it)
+        }?: throw NoSuchElementException("Author not found in Firestore")
+    }
 
+    suspend fun getAuthors(
+        vararg authorIds: String
+    ) = apiQuery{
+        val found = mutableMapOf<String, FeedAuthor>()
+
+        for (aid in authorIds) {
+            if (isSyncMe) {
+                meFlow.value?.takeIf { it.uid == aid }?.let {
+                    found[aid] = FeedAuthor(it)
+                }
+            }
+            if (isSyncPublic) {
+                publicUsersFlow.value?.find { it.uid == aid }?.let {
+                    found[aid] = FeedAuthor(it)
+                }
+            }
+            if (syncUsers.contains(aid)) {
+                usersFlow.value?.find { it.uid == aid }?.let {
+                    found[aid] = FeedAuthor(it)
+                }
+            }
+        }
+        val toFetch = authorIds.filterNot { found.containsKey(it) }
+
+        if (toFetch.isNotEmpty()) {
+            val chunks = toFetch.chunked(10) // Firestore limit for `whereIn`
+            for (chunk in chunks) {
+                val snapshot = collection
+                    .whereIn(User.Field.UID.key, chunk)
+                    .get()
+                    .await()
+
+                snapshot.documents
+                    .mapNotNull(::User)
+                    .forEach { user ->
+                        user.uid?.let {
+                            syncUsers.add(it)
+                            found[it] = FeedAuthor(user)
+                        }
+                    }
+            }
+        }
+        return@apiQuery found.toMap()
+    }
 
     suspend fun getPublicUsers() = apiQuery {
         ensureListening()
         if (isSyncPublic) {
             publicUsersFlow.value?.let {
-                return@apiQuery it.sortedWith(
-                    compareByDescending<User> { it.priority ?: 0L }
-                        .thenByDescending { it.likes.size }
-                )
+                return@apiQuery it.sortedPriorityLikes()
             }
         }
         val result = collection
@@ -157,10 +215,7 @@ class UserRepository internal constructor(
             .await()
             .documents
             .mapNotNull(::User)
-            .sortedWith(
-                compareByDescending<User> { it.priority ?: 0L }
-                    .thenByDescending { it.likes.size }
-            )
+            .sortedPriorityLikes()
         isSyncPublic = true
         return@apiQuery result
     }
@@ -307,16 +362,18 @@ class UserRepository internal constructor(
     private fun listenCache(){
         val registration = collection.addCacheListener { snapshot, error ->
             if (snapshot != null && snapshot.isEmpty.not()) {
-                val users = snapshot.documents.mapNotNull(::User)
-                _publicUsersFlow.value = users
-                    .filter { it.isPublic == true }
-                    .sortedWith(
-                        compareByDescending<User> { it.priority ?: 0L }
-                            .thenByDescending { it.likes.size }
-                    )
-                authRepository.currentUser?.phoneNumber?.let { phone ->
-                    _meFlow.value = users.find { it.phone == phone }
-                }
+                val users = snapshot.documents.mapNotNull(::User).sortedPriorityLikes()
+                val public = users.filter { it.isPublic == true }
+                val nonPublic = users.filterNot { it.isPublic == true }
+
+                _publicUsersFlow.value = public
+                _usersFlow.value = nonPublic
+
+                authRepository.currentUser?.phoneNumber
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { phone ->
+                        _meFlow.value = users.find { it.phone == phone }
+                    }
             }
         }
         ioScope.launch {
@@ -329,6 +386,10 @@ class UserRepository internal constructor(
     private fun Query.onlyPublic() =
         whereEqualTo(User.Field.IS_PUBLIC.key, true)
 
+    private fun List<User>.sortedPriorityLikes() = sortedWith(
+        compareByDescending<User> { it.priority ?: 0L }
+            .thenByDescending { it.likes.size }
+    )
 
 
 }

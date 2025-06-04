@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +73,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import coil3.compose.AsyncImage
@@ -132,6 +134,14 @@ class ProfileScreen(
             else -> AppColor.gray300
         })
 
+        if (vm.loading) {
+            Dialog(
+                onDismissRequest = {}
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
 
         Column(
             modifier = Modifier
@@ -150,6 +160,7 @@ class ProfileScreen(
                                 bottomEnd = 14.dp
                             )
                         ),
+                    loading = vm.loading,
                     images = vm.user?.image ?: emptyList()
                 )
 
@@ -324,25 +335,28 @@ class ProfileScreen(
     @Composable
     private fun AvatarBlock(
         modifier: Modifier = Modifier,
+        loading: Boolean,
         images: List<String>,
     ) = Box(
         modifier = modifier
             .background(AppColor.gray200)
     ){
         if (images.isEmpty()){
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ){
-                Text(
-                    text = "\uD83D\uDE25",
-                    style = MaterialTheme.typography.displayMedium
-                )
-                Text(
-                    text = stringResource(R.string.no_photo_placeholder),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
+            if (loading == false) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "\uD83D\uDE25",
+                        style = MaterialTheme.typography.displayMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.no_photo_placeholder),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         } else {
             val pagerState = rememberPagerState { max(images.size, 1) }

@@ -21,17 +21,17 @@ internal fun FeedTypeMark(
     type: FeedType
 ) = Box(
     modifier = modifier
-        .clip(MaterialTheme.shapes.small)
+        .clip(MaterialTheme.shapes.extraSmall)
         .background(type.color)
         .padding(
-            horizontal = 8.dp,
-            vertical = 4.dp
+            horizontal = 4.dp,
+            vertical = 2.dp
         ),
     contentAlignment = Alignment.Center
 ){
     Text(
         text = type.displayName,
         color = AppColor.white,
-        style = MaterialTheme.typography.titleSmall
+        style = MaterialTheme.typography.labelMedium
     )
 }

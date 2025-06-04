@@ -71,6 +71,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
@@ -252,7 +253,12 @@ class EditProfileScreen: PageTransitionScreen {
             )
         }
         Toolbar(
-            modifier = Modifier.statusBarsPadding(),
+            modifier = Modifier
+                .background(Brush.verticalGradient(listOf(
+                    AppColor.gray100.copy(alpha = 0.5f),
+                    Color.Transparent
+                )))
+                .statusBarsPadding(),
             canAdd = vm.images.size < AppConst.MAX_IMAGES,
             canRemove = vm.images.isNotEmpty(),
             edited = vm.edited,
@@ -341,7 +347,8 @@ class EditProfileScreen: PageTransitionScreen {
             if (it) {
                 var showMenu by remember { mutableStateOf(false) }
                 ActionButton(
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier
+                        .size(32.dp),
                     imageVector = Icons.Default.MoreVert,
                     onClick = { showMenu = true }
                 )

@@ -24,6 +24,7 @@ import net.alienminds.ethnogram.service.feed.entities.Feed
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import net.alienminds.ethnogram.service.utils.addCacheListener
+import java.time.Instant
 
 class FeedRepository internal constructor(
     private val userRepo: UserRepository,
@@ -58,13 +59,7 @@ class FeedRepository internal constructor(
             .await()
             .documents
             .mapNotNull { Feed(it) }
-            .sortedWith(
-                compareByDescending<Feed>{
-                    it.isPromotedNow
-                }.thenByDescending {
-                    it.createdAt
-                }
-            )
+            .relevantSort()
         isSyncFeeds = true
         return@apiQuery result
     }
@@ -101,9 +96,10 @@ class FeedRepository internal constructor(
                     close(error)
                     return@addSnapshotListener
                 }
-
-                val feed = snapshot?.let(::Feed)
-                trySend(feed).isSuccess
+                launch {
+                    val feed = snapshot?.let(::Feed)
+                    trySend(feed).isSuccess
+                }
             }
 
         awaitClose {
@@ -187,14 +183,7 @@ class FeedRepository internal constructor(
         val registration = collection.addCacheListener { snapshot, error ->
             if (snapshot != null && snapshot.isEmpty.not()) {
                 val feeds = snapshot.documents.mapNotNull(::Feed)
-                _feedsFlow.value = feeds.sortedWith(
-                    compareByDescending<Feed>{
-                        it.isPromotedNow
-                    }.thenByDescending {
-                        it.createdAt
-                    }
-                )
-
+                _feedsFlow.value = feeds.relevantSort()
             }
         }
         ioScope.launch {
@@ -204,6 +193,14 @@ class FeedRepository internal constructor(
         }
     }
 
-
+    private fun List<Feed>.relevantSort() = filter {
+        it.postValidUntil?.isAfter(Instant.now()) != false
+    }.sortedWith(
+        compareByDescending<Feed>{
+            it.isPromotedNow
+        }.thenByDescending {
+            it.createdAt
+        }
+    )
 
 }

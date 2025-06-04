@@ -4,7 +4,9 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.Navigator
+import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.data.DataRepository
 import net.alienminds.ethnogram.service.data.entities.Category
@@ -85,13 +87,20 @@ class ProfileViewModel(
         navigator?.root?.replaceAll(AuthScreen())
     }
 
-    private fun loadData() = launchWithLoading{
-        val myId = userRepo.getMe().getOrNull()?.uid.orEmpty()
-        allCities = dataRepo.getCities().getOrNull().orEmpty()
-        allCategories = dataRepo.getCategories().getOrNull().orEmpty()
+    private fun loadData(){
+        loading = true
+        screenModelScope.launch {
+            val myId = userRepo.getMe().getOrNull()?.uid.orEmpty()
+            allCities = dataRepo.getCities().getOrNull().orEmpty()
+            allCategories = dataRepo.getCategories().getOrNull().orEmpty()
 
-        userRepo.getUserFlow(userId?: myId).collect {
-            user = it
+            userRepo.getUserFlow(userId?: myId).collect {
+                user = it
+                if (it != null) {
+                    loading = false
+                }
+            }
+            loading = false
         }
     }
 

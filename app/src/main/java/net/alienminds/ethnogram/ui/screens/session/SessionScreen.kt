@@ -1,7 +1,6 @@
 package net.alienminds.ethnogram.ui.screens.session
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -23,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
+import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.extentions.transitions.SlidePageTransition
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.ContactsListScreen
@@ -52,10 +53,9 @@ class SessionScreen: Screen {
                         .weight(1f),
                     navigator = navigator
                 )
-                AnimatedVisibility(
-                    visible = showNavBar
-                ) {
+                if (showNavBar){
                     Column {
+                        val scope = rememberCoroutineScope()
                         HorizontalDivider(
                             modifier = Modifier.alpha(0.5f),
                             color = AppColor.gray400,
@@ -67,6 +67,10 @@ class SessionScreen: Screen {
                             onItemClick = {
                                 if (it.key != navigator.lastItemOrNull?.key) {
                                     navigator.replaceAll(it)
+                                } else{
+                                    scope.launch {
+                                        it.onClickAgain()
+                                    }
                                 }
                             }
                         )
@@ -162,5 +166,9 @@ internal interface NavBarScreen: PageTransitionScreen{
     val icon: @Composable () -> Painter
 
     val activeIcon: @Composable () -> Painter
+
+    suspend fun onClickAgain(){
+
+    }
 
 }

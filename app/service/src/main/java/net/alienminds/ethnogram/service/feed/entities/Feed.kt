@@ -3,6 +3,7 @@ package net.alienminds.ethnogram.service.feed.entities
 import androidx.annotation.Keep
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import net.alienminds.ethnogram.service.user.entities.User
 import java.time.Instant
 
 /***
@@ -15,8 +16,8 @@ data class Feed(
     val title: String? = null,
     val description: String? = null,
     val imageUrl: String? = null,
-    val author: FeedAuthor? = null,
     val authorPhone: String? = null,
+    val authorId: String? = null,
     val likeList: List<String>? = null,
     val comments: List<FeedComment>? = null,
     val type: FeedType? = null,
@@ -33,8 +34,8 @@ data class Feed(
         title = doc.getString("title"),
         description = doc.getString("description"),
         imageUrl = doc.getString("imageUrl"),
-        author = doc.parseAuthor(),
         authorPhone = doc.getString("authorPhone"),
+        authorId = doc.getString("authorId"),
         likeList = doc.parseLikes(),
         comments = doc.parseComments(),
         type = doc.parseType(),
@@ -56,9 +57,6 @@ data class Feed(
 
         private fun DocumentSnapshot.parseType() =
             getLong("type")?.toInt()?.let(FeedType::fromId)
-
-        private fun DocumentSnapshot.parseAuthor() =
-            (get("author") as? Map<*, *>)?.let(::FeedAuthor)
 
         private fun DocumentSnapshot.parsePromo() =
             (get("promoDetails") as? Map<*, *>)?.let(::PromoDetail)
@@ -119,14 +117,24 @@ data class EventDetails(
 
 data class FeedAuthor(
     val avatarUrl: String? = null,
-    val fullName: String? = null,
-    val phone: String? = null
+    val name: String? = null,
+    val surname: String? = null,
 ) {
-    internal constructor(map: Map<*, *>?) : this(
-        avatarUrl = map?.get("avatarUrl") as? String,
-        fullName = map?.get("fullname") as? String,
-        phone = map?.get("phone") as? String
+    internal constructor(user: User): this(
+        avatarUrl = user.image.firstOrNull(),
+        name = user.name,
+        surname = user.surname
     )
+
+    val fullName
+        get() = "${name.orEmpty()} ${surname.orEmpty()}".trim()
+
+    val initials
+        get() = buildString {
+            name?.firstOrNull()?.let { append(it) }
+            surname?.firstOrNull()?.let { append(it) }
+        }
+
 }
 
 @Keep

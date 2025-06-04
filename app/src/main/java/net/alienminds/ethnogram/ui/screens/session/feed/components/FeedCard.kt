@@ -21,15 +21,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.alienminds.ethnogram.service.feed.entities.Feed
+import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
+import net.alienminds.ethnogram.service.feed.entities.FeedType
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.rememberRelativeTime
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun FeedCard(
     modifier: Modifier = Modifier,
     feed: Feed,
+    author: FeedAuthor?,
     isFavorite: Boolean? = null,
     onClick: () -> Unit,
     onChangeFavorite: ((Boolean) -> Unit)? = null
@@ -39,9 +45,10 @@ fun FeedCard(
             modifier = modifier
                 .clip(MaterialTheme.shapes.medium)
                 .background(AppColor.white)
-                .clickable{ onClick() }
+                .clickable { onClick() }
                 .padding(16.dp),
             feed = feed,
+            author = author,
             isFavorite = isFavorite,
             onChangeFavorite = onChangeFavorite
         )
@@ -49,7 +56,8 @@ fun FeedCard(
         DefaultFeedCard(
             modifier = modifier
                 .clickable{ onClick() },
-            feed = feed
+            feed = feed,
+            author = author
         )
     }
 }
@@ -57,7 +65,8 @@ fun FeedCard(
 @Composable
 private fun DefaultFeedCard(
     modifier: Modifier = Modifier,
-    feed: Feed
+    feed: Feed,
+    author: FeedAuthor?
 ) = Row(
     modifier = modifier
 ){
@@ -69,34 +78,43 @@ private fun DefaultFeedCard(
         imageUrl = feed.imageUrl,
     )
     Column{
+        if (feed.type == FeedType.EVENT) {
+            val date = feed.eventDetails?.startTime?.let {
+                LocalDateTime.ofInstant(it, ZoneId.systemDefault())
+            }
+            Text(
+                text = date?.let {
+                    DateTimeFormatter.ofPattern("dd MMMM в hh:mm").format(it)
+                }.orEmpty(),
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColor.gray700
+            )
+        }
         PrimaryContent(
             title = feed.title,
             description = feed.description,
             multiline = false
         )
+
+        FeedAuthor(
+            modifier = Modifier.padding(top = 4.dp),
+            author = author
+        )
         Row(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            Column {
-                FeedAuthor(
-                    author = feed.author
-                )
-                RelativeTime(
-                    modifier = Modifier.padding(top = 4.dp),
-                    instant = feed.createdAt
-                )
-            }
+        ) {
+            RelativeTime(
+                modifier = Modifier.padding(top = 4.dp),
+                instant = feed.createdAt
+            )
+
             feed.type?.let {
                 FeedTypeMark(
                     type = it
                 )
             }
         }
-
     }
 }
 
@@ -104,6 +122,7 @@ private fun DefaultFeedCard(
 private fun BigFeedCard(
     modifier: Modifier = Modifier,
     feed: Feed,
+    author: FeedAuthor?,
     isFavorite: Boolean?,
     onChangeFavorite: ((Boolean) -> Unit)?
 ) = Column(
@@ -123,6 +142,19 @@ private fun BigFeedCard(
             )
         }
     }
+    if (feed.type == FeedType.EVENT) {
+        val date = feed.eventDetails?.startTime?.let {
+            LocalDateTime.ofInstant(it, ZoneId.systemDefault())
+        }
+        Text(
+            modifier = Modifier.padding(top = 8.dp),
+            text = date?.let {
+                DateTimeFormatter.ofPattern("dd MMMM в hh:mm").format(it)
+            }.orEmpty(),
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColor.gray700
+        )
+    }
     PrimaryContent(
         modifier = Modifier.padding(top = 8.dp),
         title = feed.title,
@@ -131,7 +163,7 @@ private fun BigFeedCard(
     )
     FeedAuthor(
         modifier = Modifier.padding(top = 8.dp),
-        author = feed.author
+        author = author
     )
     Row(
         modifier = Modifier
@@ -166,7 +198,10 @@ private fun PrimaryContent(
 ){
     Text(
         text = title.orEmpty(),
-        style = MaterialTheme.typography.headlineSmall,
+        style = when(multiline) {
+            true -> MaterialTheme.typography.headlineSmall
+            false -> MaterialTheme.typography.titleMedium
+        },
         overflow = TextOverflow.Ellipsis,
         fontWeight = FontWeight.Bold,
         maxLines = when(multiline){

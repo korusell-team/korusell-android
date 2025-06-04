@@ -8,6 +8,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.service.feed.FeedRepository
 import net.alienminds.ethnogram.service.feed.entities.Feed
+import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
@@ -22,6 +23,11 @@ internal class FeedDetailsModel(
     private var myId by mutableStateOf<String?>(null)
 
     var feed by mutableStateOf<Feed?>(null)
+        private set
+
+    var author by mutableStateOf<FeedAuthor?>(null)
+        private set
+
     val isFavorite by derivedStateOf { feed?.likeList?.any { it == myId } == true }
 
     init {
@@ -57,6 +63,7 @@ internal class FeedDetailsModel(
 
     private suspend fun loadFeed(){
         feed = feedRepo.getFeed(feedId).getOrNull()
+        author = feed?.authorId?.let { userRepo.getAuthor(it).getOrNull() }
         myId = userRepo.getMyId()
     }
 }
