@@ -12,12 +12,12 @@ val versionBuild = 9 //max 99
 
 android {
     namespace = "net.alienminds.ethnogram"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "net.alienminds.ethnogram"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
         versionName = "${versionMajor}.${versionMinor}.${versionPatch}"
 
@@ -25,6 +25,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -67,6 +71,7 @@ dependencies {
     implementation(libs.compose.shimmer)
     implementation(libs.cloudy)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     //Navigation
     implementation(libs.voyager.navigator)
