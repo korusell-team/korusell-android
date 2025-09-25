@@ -38,15 +38,19 @@ android {
 
 dependencies {
 
+    //Core
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+
+    //Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    //Koin DI
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+
+
 }

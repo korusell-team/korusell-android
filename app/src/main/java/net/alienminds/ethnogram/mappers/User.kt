@@ -7,126 +7,143 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.service.users.entities.User
-import net.alienminds.ethnogram.service.users.entities.User.Fields
-import net.alienminds.ethnogram.service.users.entities.User.LinkType
+import net.alienminds.ethnogram.service.user.entities.UserSocial
+import net.alienminds.ethnogram.service.user.entities.UserSocialType
 import net.alienminds.ethnogram.utils.openLinkExternal
 import net.alienminds.ethnogram.utils.openLinkInApp
 
-val User.Link.title
-    @Composable get() = type.title
+//val User.Link.title
+//    @Composable get() = type.title
 
-val LinkType.title
+val UserSocialType.title
     @Composable get() = when(this){
-        LinkType.TELEGRAM -> stringResource(R.string.telegram)
-        LinkType.INSTAGRAM -> stringResource(R.string.instagram)
-        LinkType.WHATS_APP -> stringResource(R.string.whatsapp)
-        LinkType.THREADS -> stringResource(R.string.threads)
-        LinkType.YOUTUBE -> stringResource(R.string.youtube)
-        LinkType.WEB_SITE -> stringResource(R.string.web_site)
-        LinkType.FACEBOOK -> stringResource(R.string.facebook)
-        LinkType.KAKAO -> stringResource(R.string.kakao)
-        LinkType.TIKTOK -> stringResource(R.string.tiktok)
-        LinkType.LINKED_IN -> stringResource(R.string.linked_in)
-        LinkType.TWITTER -> stringResource(R.string.twitter)
+        UserSocialType.TELEGRAM -> stringResource(R.string.telegram)
+        UserSocialType.INSTAGRAM -> stringResource(R.string.instagram)
+        UserSocialType.WHATS_APP -> stringResource(R.string.whatsapp)
+        UserSocialType.THREADS -> stringResource(R.string.threads)
+        UserSocialType.YOUTUBE -> stringResource(R.string.youtube)
+        UserSocialType.WEB_SITE -> stringResource(R.string.web_site)
+        UserSocialType.FACEBOOK -> stringResource(R.string.facebook)
+        UserSocialType.KAKAO -> stringResource(R.string.kakao)
+        UserSocialType.TIKTOK -> stringResource(R.string.tiktok)
+        UserSocialType.LINKED_IN -> stringResource(R.string.linked_in)
+        UserSocialType.TWITTER -> stringResource(R.string.twitter)
     }
 
-val User.Link.placeholder
-    @Composable get() = type.placeholder
+//val User.Link.placeholder
+//    @Composable get() = type.placeholder
 
-val LinkType.placeholder
+val UserSocialType.placeholder
     @Composable get() = when(this){
-        LinkType.INSTAGRAM,
-        LinkType.THREADS,
-        LinkType.TWITTER -> stringResource(R.string.nickname)
-        LinkType.YOUTUBE -> stringResource(R.string.channel)
-        LinkType.WEB_SITE -> stringResource(R.string.link_placeholder)
-        LinkType.FACEBOOK,
-        LinkType.TIKTOK,
-        LinkType.KAKAO -> stringResource(R.string.id)
-        LinkType.TELEGRAM -> stringResource(R.string.telegram_placeholder)
-        LinkType.LINKED_IN -> stringResource(R.string.profile)
-        LinkType.WHATS_APP -> stringResource(R.string.phone_placeholder)
+        UserSocialType.INSTAGRAM,
+        UserSocialType.THREADS,
+        UserSocialType.TWITTER -> stringResource(R.string.nickname)
+        UserSocialType.YOUTUBE -> stringResource(R.string.channel)
+        UserSocialType.WEB_SITE -> stringResource(R.string.link_placeholder)
+        UserSocialType.FACEBOOK,
+        UserSocialType.TIKTOK,
+        UserSocialType.KAKAO -> stringResource(R.string.id)
+        UserSocialType.TELEGRAM -> stringResource(R.string.telegram_placeholder)
+        UserSocialType.LINKED_IN -> stringResource(R.string.profile)
+        UserSocialType.WHATS_APP -> stringResource(R.string.phone_placeholder)
     }
 
-val User.Link.roundIcon
-    @Composable get() = type.roundIcon
+//val User.Link.roundIcon
+//    @Composable get() = type.roundIcon
 
-val LinkType.roundIcon
+val UserSocialType.roundIcon
     @Composable get() = when(this){
-        LinkType.TELEGRAM -> painterResource(R.drawable.ic_telegram_round)
-        LinkType.INSTAGRAM -> painterResource(R.drawable.ic_instagram_round)
-        LinkType.WHATS_APP -> painterResource(R.drawable.ic_whatsapp_round)
-        LinkType.THREADS -> painterResource(R.drawable.ic_threads_round)
-        LinkType.YOUTUBE -> painterResource(R.drawable.ic_youtube_round)
-        LinkType.WEB_SITE -> painterResource(R.drawable.ic_link_round)
-        LinkType.FACEBOOK -> painterResource(R.drawable.ic_facebook_round)
-        LinkType.KAKAO -> painterResource(R.drawable.ic_kakao_round)
-        LinkType.TIKTOK -> painterResource(R.drawable.ic_tiktok_round)
-        LinkType.LINKED_IN -> painterResource(R.drawable.ic_linkedin_round)
-        LinkType.TWITTER -> painterResource(R.drawable.ic_twitter_round)
+        UserSocialType.TELEGRAM -> painterResource(R.drawable.ic_telegram_round)
+        UserSocialType.INSTAGRAM -> painterResource(R.drawable.ic_instagram_round)
+        UserSocialType.WHATS_APP -> painterResource(R.drawable.ic_whatsapp_round)
+        UserSocialType.THREADS -> painterResource(R.drawable.ic_threads_round)
+        UserSocialType.YOUTUBE -> painterResource(R.drawable.ic_youtube_round)
+        UserSocialType.WEB_SITE -> painterResource(R.drawable.ic_link_round)
+        UserSocialType.FACEBOOK -> painterResource(R.drawable.ic_facebook_round)
+        UserSocialType.KAKAO -> painterResource(R.drawable.ic_kakao_round)
+        UserSocialType.TIKTOK -> painterResource(R.drawable.ic_tiktok_round)
+        UserSocialType.LINKED_IN -> painterResource(R.drawable.ic_linkedin_round)
+        UserSocialType.TWITTER -> painterResource(R.drawable.ic_twitter_round)
     }
 
 
-val User.Link.icon
-    @Composable get() = type.icon
+//val User.Link.icon
+//    @Composable get() = type.icon
 
-val LinkType.icon
+val UserSocialType.icon
     @Composable get() = when(this){
-        LinkType.TELEGRAM -> painterResource(R.drawable.ic_telegram)
-        LinkType.INSTAGRAM -> painterResource(R.drawable.ic_instagram)
-        LinkType.WHATS_APP -> painterResource(R.drawable.ic_whatsapp)
-        LinkType.THREADS -> painterResource(R.drawable.ic_threads)
-        LinkType.YOUTUBE -> painterResource(R.drawable.ic_youtube)
-        LinkType.WEB_SITE -> painterResource(R.drawable.ic_www)
-        LinkType.FACEBOOK -> painterResource(R.drawable.ic_facebook)
-        LinkType.KAKAO -> painterResource(R.drawable.ic_kakao)
-        LinkType.TIKTOK -> painterResource(R.drawable.ic_tiktok)
-        LinkType.LINKED_IN -> painterResource(R.drawable.ic_linkedin)
-        LinkType.TWITTER -> painterResource(R.drawable.ic_twitter)
+        UserSocialType.TELEGRAM -> painterResource(R.drawable.ic_telegram)
+        UserSocialType.INSTAGRAM -> painterResource(R.drawable.ic_instagram)
+        UserSocialType.WHATS_APP -> painterResource(R.drawable.ic_whatsapp)
+        UserSocialType.THREADS -> painterResource(R.drawable.ic_threads)
+        UserSocialType.YOUTUBE -> painterResource(R.drawable.ic_youtube)
+        UserSocialType.WEB_SITE -> painterResource(R.drawable.ic_www)
+        UserSocialType.FACEBOOK -> painterResource(R.drawable.ic_facebook)
+        UserSocialType.KAKAO -> painterResource(R.drawable.ic_kakao)
+        UserSocialType.TIKTOK -> painterResource(R.drawable.ic_tiktok)
+        UserSocialType.LINKED_IN -> painterResource(R.drawable.ic_linkedin)
+        UserSocialType.TWITTER -> painterResource(R.drawable.ic_twitter)
     }
 
-val User.Link.displayValue
-    get() = when(type){
-        LinkType.TELEGRAM,
-        LinkType.INSTAGRAM -> "@$value"
-        else -> value
-    }
+fun UserSocialType.displayValue(
+    value: String?
+) = when(this){
+    UserSocialType.TELEGRAM,
+    UserSocialType.INSTAGRAM -> "@$value"
+    else -> value.orEmpty()
+}
 
-val LinkType.field
+
+val UserSocialType.field
     get() = when(this){
-        LinkType.INSTAGRAM -> Fields.INSTAGRAM
-        LinkType.TELEGRAM -> Fields.TELEGRAM
-        LinkType.YOUTUBE -> Fields.YOUTUBE
-        LinkType.WEB_SITE -> Fields.WEB_SITE
-        LinkType.FACEBOOK -> Fields.FACEBOOK
-        LinkType.TIKTOK -> Fields.TIKTOK
-        LinkType.KAKAO -> Fields.KAKAO
-        LinkType.WHATS_APP -> Fields.WHATS_APP
-        LinkType.LINKED_IN -> Fields.LINKED_IN
-        LinkType.THREADS -> Fields.THREADS
-        LinkType.TWITTER -> Fields.TWITTER
+        UserSocialType.INSTAGRAM -> UserSocial.Field.INSTAGRAM
+        UserSocialType.TELEGRAM -> UserSocial.Field.TELEGRAM
+        UserSocialType.YOUTUBE -> UserSocial.Field.YOUTUBE
+        UserSocialType.WEB_SITE -> UserSocial.Field.WEB_SITE
+        UserSocialType.FACEBOOK -> UserSocial.Field.FACEBOOK
+        UserSocialType.TIKTOK -> UserSocial.Field.TIKTOK
+        UserSocialType.KAKAO -> UserSocial.Field.KAKAO
+        UserSocialType.WHATS_APP -> UserSocial.Field.WHATS_APP
+        UserSocialType.LINKED_IN -> UserSocial.Field.LINKED_IN
+        UserSocialType.THREADS -> UserSocial.Field.THREADS
+        UserSocialType.TWITTER -> UserSocial.Field.TWITTER
     }
 
-fun User.Link.copyToClipboard(context: Context){
-    context.copyToClipboard(type.name, displayValue)
-}
 
-fun User.Link.open(context: Context) = with(context){
-    when(type){
-        LinkType.INSTAGRAM -> openInstagram(value)
-        LinkType.TELEGRAM -> openTelegram(value)
-        LinkType.YOUTUBE -> openYoutube(value)
-        LinkType.WEB_SITE -> openWebLink(value)
-        LinkType.FACEBOOK -> openFacebook(value)
-        LinkType.TIKTOK -> openTiktok(value)
-        LinkType.WHATS_APP -> openWhatsApp(value)
-        LinkType.LINKED_IN -> openLinkedIn(value)
-        LinkType.THREADS -> openThreads(value)
-        LinkType.TWITTER -> openTwitter(value)
-        else -> copyToClipboard(type.name, value)
+fun UserSocialType.openInApp(
+    context: Context,
+    value: String
+) = with(context){
+    when(this@openInApp){
+        UserSocialType.INSTAGRAM -> openInstagram(value)
+        UserSocialType.TELEGRAM -> openTelegram(value)
+        UserSocialType.YOUTUBE -> openYoutube(value)
+        UserSocialType.WEB_SITE -> openWebLink(value)
+        UserSocialType.FACEBOOK -> openFacebook(value)
+        UserSocialType.TIKTOK -> openTiktok(value)
+        UserSocialType.WHATS_APP -> openWhatsApp(value)
+        UserSocialType.LINKED_IN -> openLinkedIn(value)
+        UserSocialType.THREADS -> openThreads(value)
+        UserSocialType.TWITTER -> openTwitter(value)
+        else -> copyToClipboard(this@openInApp.name, displayValue(value))
     }
 }
+
+//fun User.Link.open(context: Context) = with(context){
+//    when(type){
+//        UserSocialType.INSTAGRAM -> openInstagram(value)
+//        UserSocialType.TELEGRAM -> openTelegram(value)
+//        UserSocialType.YOUTUBE -> openYoutube(value)
+//        UserSocialType.WEB_SITE -> openWebLink(value)
+//        UserSocialType.FACEBOOK -> openFacebook(value)
+//        UserSocialType.TIKTOK -> openTiktok(value)
+//        UserSocialType.WHATS_APP -> openWhatsApp(value)
+//        UserSocialType.LINKED_IN -> openLinkedIn(value)
+//        UserSocialType.THREADS -> openThreads(value)
+//        UserSocialType.TWITTER -> openTwitter(value)
+//        else -> copyToClipboard(type.name, value)
+//    }
+//}
 
 
 private fun Context.openTwitter(value: String) = openLinkInApp(
@@ -183,7 +200,7 @@ private fun Context.openWhatsApp(value: String) = openLinkInApp(
 
 
 
-private fun Context.copyToClipboard(label: String, link: String){
+fun Context.copyToClipboard(label: String, link: String){
     val clipboard: ClipboardManager? = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager?
     val clip = ClipData.newPlainText(label, link)
     clipboard?.setPrimaryClip(clip)

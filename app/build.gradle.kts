@@ -6,11 +6,21 @@ plugins {
 }
 
 val versionMajor = 0
-val versionMinor = 0 //max 9
-val versionPatch = 1 //max 9
-val versionBuild = 9 //max 99
+val versionMinor = 1 //max 9
+val versionPatch = 0 //max 9
+val versionBuild = 6 //max 99
+
+val updatePriority = 3 // приоритет для In-App Update
 
 android {
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("/home/duckrya/Projects/Android/keystores/debug.keystore")
+            keyAlias = "androiddebugkey"
+            storePassword = "android"
+            keyPassword = "android"
+        }
+    }
     namespace = "net.alienminds.ethnogram"
     compileSdk = 36
 
@@ -19,7 +29,9 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
-        versionName = "${versionMajor}.${versionMinor}.${versionPatch}"
+        versionName = "${versionMajor}.${versionMinor}.${versionPatch} ($versionCode)"
+
+        manifestPlaceholders["updatePriority"] = updatePriority
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +47,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -73,6 +88,9 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material.icons.extended)
 
+    //Time Formater
+    implementation(libs.prettytime)
+
     //Navigation
     implementation(libs.voyager.navigator)
     implementation(libs.voyager.transitions)
@@ -82,12 +100,13 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(project(":app:service"))
 
-    //Tests
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    //Koin DI
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+
+    //In-app updates
+    implementation(libs.app.update.ktx)
+    implementation(libs.kotlinx.coroutines.play.services)
+
 }

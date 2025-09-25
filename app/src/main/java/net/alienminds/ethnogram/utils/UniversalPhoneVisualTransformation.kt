@@ -204,6 +204,7 @@ class UniversalPhoneVisualTransformation : VisualTransformation {
         }
     }
 }
+
 fun phoneToFbPhone(phone: String):String {
     return when {
         phone.take(2) == "82" -> "+82${phone.drop(2).take(10)}"

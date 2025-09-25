@@ -7,14 +7,17 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
-import net.alienminds.ethnogram.service.API
 import net.alienminds.ethnogram.service.base.entities.InputField
-import net.alienminds.ethnogram.service.users.entities.User
+import net.alienminds.ethnogram.service.user.UserRepository
+import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.utils.AppScreenModel
+import org.koin.core.component.inject
 
 class ProfileSetupViewModel: AppScreenModel() {
 
-    private val profile by API.users.me.toState(null)
+    private val userRepo by inject<UserRepository>()
+
+    private var profile by mutableStateOf<User?>(null)
 
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
@@ -35,11 +38,14 @@ class ProfileSetupViewModel: AppScreenModel() {
     private val isErrorSurname by derivedStateOf { surname.isNullOrEmpty() }
 
     init {
-        onLoginSuccess()
+        loadProfile()
     }
 
-    private fun onLoginSuccess() = withLoadingScope {
-        API.users.reloadFromServer()
+    private fun loadProfile() = launchWithLoading {
+        val profile = userRepo.getMe().getOrNull()
+        name = profile?.name
+        surname = profile?.surname
+        bio = profile?.bio
     }
 
     val canSave by derivedStateOf {
@@ -53,15 +59,14 @@ class ProfileSetupViewModel: AppScreenModel() {
     ) = addedImages.addAll(0, photos.map { it.toString() })
 
 
-    fun saveUser(onSuccess: () -> Unit) = withLoadingScope {
+    fun saveUser(onSuccess: () -> Unit) = launchWithLoading {
         val fields = getEditedFields().run {
             if (addedImages.isNotEmpty() || removedImages.isNotEmpty()) {
-                plus(InputField(User.Fields.IMAGE, applyImages()))
+                plus(InputField(User.Field.IMAGE, applyImages()))
             } else this
         }
-
-        val result = API.users.updateUser(values = fields)
-        if (result.isSuccess) {
+        val result = userRepo.updateMe(values = fields)
+        if (result.isSuccess && result.getOrNull() == true) {
             onSuccess()
         }
     }
@@ -69,11 +74,11 @@ class ProfileSetupViewModel: AppScreenModel() {
     private suspend fun applyImages(): List<String> {
         val newImages = profile?.image?.toMutableList()?: mutableListOf()
         removedImages.forEach {
-            API.users.removeImage(it)
+            userRepo.removeImage(it)
             newImages.remove(it)
         }
         addedImages.mapNotNull{
-            API.users.uploadImage(it.toUri()).data?.toString()
+            userRepo.uploadPhoto(it.toUri()).getOrNull()?.toString()
         }.let { newImages.addAll(0, it) }
         removedImages.clear()
         addedImages.clear()
@@ -81,9 +86,9 @@ class ProfileSetupViewModel: AppScreenModel() {
     }
 
     private fun getEditedFields(): List<InputField<Any>> = listOf(
-        Pair(InputField(User.Fields.NAME, name.orEmpty()), profile?.name.orEmpty()),
-        Pair(InputField(User.Fields.SURNAME, surname.orEmpty()), profile?.surname.orEmpty()),
-        Pair(InputField(User.Fields.BIO, bio.orEmpty()), profile?.bio.orEmpty())).mapNotNull{ pair ->
+        Pair(InputField(User.Field.NAME, name.orEmpty()), profile?.name.orEmpty()),
+        Pair(InputField(User.Field.SURNAME, surname.orEmpty()), profile?.surname.orEmpty()),
+        Pair(InputField(User.Field.BIO, bio.orEmpty()), profile?.bio.orEmpty())).mapNotNull{ pair ->
         pair.first.takeUnless{ it.value == pair.second }
     }
 
