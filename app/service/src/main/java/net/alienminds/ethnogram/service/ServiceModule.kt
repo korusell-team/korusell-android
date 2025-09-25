@@ -1,7 +1,7 @@
 package net.alienminds.ethnogram.service
 
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.ktx.storage
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import net.alienminds.ethnogram.service.auth.AuthRepository
