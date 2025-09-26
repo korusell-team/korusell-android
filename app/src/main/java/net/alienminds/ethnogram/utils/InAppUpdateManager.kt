@@ -1,12 +1,18 @@
 package net.alienminds.ethnogram.utils
 
 import android.app.Activity
+import android.app.Activity.RESULT_OK
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.appupdate.testing.FakeAppUpdateManager
+import com.google.android.play.core.install.InstallException
+import com.google.android.play.core.install.InstallState
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
@@ -14,107 +20,124 @@ import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.android.play.core.ktx.clientVersionStalenessDays
 import com.google.android.play.core.ktx.updatePriority
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-class InAppUpdateManager(
-    private val activity: Activity
+class InAppUpdateManager internal constructor(
+    private val appContext: Context
 ){
 
-    private val appUpdateManager = AppUpdateManagerFactory.create(activity)
+    companion object{
+        const val LOG_TAG = "InAppUpdateManager"
+    }
 
-    var updateState by mutableStateOf<UpdateAppUiState>(UpdateAppUiState.NotInitialize)
-        private set
+    private val appUpdateManager by lazy { AppUpdateManagerFactory.create(appContext) }
+    private val stateUpdater = StateUpdater()
 
-    suspend fun checkUpdate(){
-        runCatching{
-            withContext(Dispatchers.IO) {
-                val updateInfo = appUpdateManager.appUpdateInfo.await()
-                if (updateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE){
-                    launchUpdate(updateInfo)
+    private val _status = MutableStateFlow<UpdateStatus>(UpdateStatus.NotStarted)
+    val status = _status.asStateFlow()
+
+    suspend fun getUpdate() = runCatching{
+        AppUpdate(appUpdateManager.appUpdateInfo.await())
+    }.onSuccess {
+        Log.i(LOG_TAG, "App Update Available ${it.versionCode}")
+    }.onFailure {
+        Log.e(LOG_TAG, "Failed get update app", it)
+    }
+
+
+    suspend fun startUpdate(appUpdate: AppUpdate, activity: Activity){
+        runCatching {
+            _status.tryEmit(UpdateStatus.Progress)
+            val priority = appUpdate.appUpdateInfo.updatePriority
+            val updateType = when (priority <= 3) {
+                true -> AppUpdateType.FLEXIBLE
+                false -> AppUpdateType.IMMEDIATE
+            }
+            if (updateType == AppUpdateType.FLEXIBLE) {
+                appUpdateManager.registerListener(stateUpdater)
+            }
+
+            if (appUpdate.appUpdateInfo.isUpdateTypeAllowed(updateType)) {
+                val options = AppUpdateOptions.newBuilder(updateType).build()
+                val resultCode = appUpdateManager.startUpdateFlow(appUpdate.appUpdateInfo, activity, options).await()
+                if (resultCode != RESULT_OK){
+                    error("Failed update app, code $resultCode")
                 }
+            } else {
+                error("Update is not allowed, type: $updateType, priority: $priority")
             }
         }.onFailure {
-            updateState = UpdateAppUiState.NotInitialize
-            it.printStackTrace()
+            _status.tryEmit(UpdateStatus.NotStarted)
+            Log.e(LOG_TAG, "Failed update app", it)
         }
     }
 
-
-    private suspend fun launchUpdate(updateInfo: AppUpdateInfo){
-        val flexibleAllowed = updateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-        val immediateAllowed = updateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
-
-        when (updateInfo.updatePriority) {
-            in 0..1 -> {
-                if ((updateInfo.clientVersionStalenessDays?: 0) >= 3 && flexibleAllowed){
-                    flexibleUpdate(updateInfo)
-                }
-            }
-            in 2..3 -> if (flexibleAllowed) flexibleUpdate(updateInfo)
-            in 4..5 -> when {
-                immediateAllowed -> immediateUpdate(updateInfo)
-                flexibleAllowed -> flexibleUpdate(updateInfo)
-            }
-        }
-    }
-
-    private suspend fun immediateUpdate(updateInfo: AppUpdateInfo) = appUpdateManager.startUpdateFlow(
-        updateInfo,
-        activity,
-        AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
-    ).await()
-
-    private suspend fun flexibleUpdate(updateInfo: AppUpdateInfo){
-        val listener = InstallStateUpdatedListener { state ->
-            val status = state.installStatus()
-            when(status){
-                InstallStatus.DOWNLOADING -> {
-                    val bytesDownloaded = state.bytesDownloaded()
-                    val totalBytesToDownload = state.totalBytesToDownload()
-                    updateState = UpdateAppUiState.Downloading(
-                        percentage = bytesDownloaded.toFloat()/totalBytesToDownload
-                    )
-                }
-                InstallStatus.DOWNLOADED -> {
-                    updateState = UpdateAppUiState.Ready
-                }
-                else -> {
-                    updateState = UpdateAppUiState.NotInitialize
-                }
-            }
-
-        }
-        appUpdateManager.registerListener(listener)
-        appUpdateManager.startUpdateFlow(
-            updateInfo,
-            activity,
-            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
-        ).await()
-        appUpdateManager.unregisterListener(listener)
-    }
-
-    suspend fun completeFlexibleUpdate(){
-        if (updateState !is UpdateAppUiState.Ready) return
+    suspend fun confirmInstall(){
         runCatching {
-            withContext(Dispatchers.IO) {
+            if (_status.value is UpdateStatus.ReadyToInstall) {
                 appUpdateManager.completeUpdate().await()
+                appUpdateManager.unregisterListener(stateUpdater)
             }
+        }.onFailure {
+            Log.e(LOG_TAG, "Failed install app", it)
         }
     }
 
+    inner class StateUpdater: InstallStateUpdatedListener {
+        override fun onStateUpdate(state: InstallState) {
+            when (state.installStatus()) {
+                InstallStatus.PENDING,
+                InstallStatus.INSTALLING -> UpdateStatus.Progress
 
-    sealed class UpdateAppUiState{
+                InstallStatus.DOWNLOADING -> UpdateStatus.ProgressFlexible(
+                    bytesDownloaded = state.bytesDownloaded(),
+                    totalBytes = state.totalBytesToDownload()
+                )
 
-        object NotInitialize: UpdateAppUiState()
+                InstallStatus.DOWNLOADED -> UpdateStatus.ReadyToInstall
+                InstallStatus.INSTALLED,
+                InstallStatus.FAILED,
+                InstallStatus.CANCELED,
+                InstallStatus.UNKNOWN -> {
+                    appUpdateManager.unregisterListener(this)
+                    UpdateStatus.NotStarted
+                }
 
-        data class Downloading(
-            val percentage: Float//0f..1f
-        ): UpdateAppUiState()
+                else -> UpdateStatus.NotStarted
+            }.let { updateStatus ->
+                _status.tryEmit(updateStatus)
+            }
 
-        object Ready: UpdateAppUiState()
-
+        }
     }
 
+}
+
+sealed class UpdateStatus{
+    data object NotStarted: UpdateStatus()
+    data object Progress: UpdateStatus()
+    data object ReadyToInstall: UpdateStatus()
+    data class ProgressFlexible(
+        val bytesDownloaded: Long,
+        val totalBytes: Long
+    ): UpdateStatus()
+}
+
+class AppUpdate internal constructor(
+    internal val appUpdateInfo: AppUpdateInfo
+){
+
+    val isAvailable
+        get() = when(appUpdateInfo.updateAvailability()) {
+            UpdateAvailability.UPDATE_AVAILABLE,
+            UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS -> true
+            else -> false
+        }
+
+    val versionCode
+        get() = appUpdateInfo.availableVersionCode()
 
 }

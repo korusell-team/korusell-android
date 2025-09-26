@@ -3,14 +3,13 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.service)
+    alias(libs.plugins.crashlitics)
 }
 
 val versionMajor = 0
 val versionMinor = 1 //max 9
 val versionPatch = 0 //max 9
-val versionBuild = 6 //max 99
-
-val updatePriority = 3 // приоритет для In-App Update
+val versionBuild = 8 //max 99
 
 android {
     signingConfigs {
@@ -31,25 +30,23 @@ android {
         versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
         versionName = "${versionMajor}.${versionMinor}.${versionPatch} ($versionCode)"
 
-        manifestPlaceholders["updatePriority"] = updatePriority
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
-        }
-        getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -108,5 +105,11 @@ dependencies {
     //In-app updates
     implementation(libs.app.update.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    //Permissions
+    implementation(libs.accompanist.permissions)
+
+    implementation(libs.firebase.crashlytics.ndk)
+    implementation(libs.firebase.analytics)
 
 }

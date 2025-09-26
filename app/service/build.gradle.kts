@@ -52,5 +52,8 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.android)
 
+    //Firebase Cloud Messaging
+    implementation(libs.firebase.messaging)
+
 
 }

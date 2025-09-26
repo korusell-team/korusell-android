@@ -17,8 +17,8 @@ class EthnogramApp: Application() {
         }
     }
 
-    override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(AppContextWrapper.wrap(base))
-    }
+//    override fun attachBaseContext(base: Context?) {
+//        super.attachBaseContext(AppContextWrapper.wrap(base))
+//    }
 
 }

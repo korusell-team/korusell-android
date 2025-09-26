@@ -12,7 +12,7 @@ import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import org.koin.dsl.module
 
-val serviceModule = module {
+val serviceModule = module{
 
     //Coroutine
     single<CoroutineScope> { CoroutineScope(Dispatchers.IO) }

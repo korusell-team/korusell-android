@@ -1,6 +1,5 @@
 package net.alienminds.ethnogram.ui.screens.auth.onboarding
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,23 +17,28 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
+import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.ui.extentions.rootOrThrow
 import net.alienminds.ethnogram.ui.extentions.shimmerState
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
-import net.alienminds.ethnogram.ui.screens.auth.phone.AuthPhoneScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class OnboardingScreen(
 ) : PageTransitionScreen, KoinComponent {
@@ -56,10 +60,27 @@ class OnboardingScreen(
         Spacer(Modifier.statusBarsPadding())
         Spacer(Modifier.weight(1f))
 
-        Image(
-            modifier = Modifier
-                .fillMaxWidth(),
-            painter = painterResource(R.drawable.onboarding_people),
+        var imageWidthPx by remember { mutableIntStateOf(0) }
+        val density = LocalDensity.current
+        val context = LocalContext.current
+        val imageModifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                val width = coordinates.size.width
+                if (width > 0 && width != imageWidthPx) {
+                    imageWidthPx = width
+                }
+            }
+        val imageRequest = remember(imageWidthPx) {
+            val width = if (imageWidthPx > 0) imageWidthPx else with(density) { 360.dp.roundToPx() }
+            ImageRequest.Builder(context)
+                .data(R.drawable.onboarding_people)
+                .size(width)
+                .build()
+        }
+        SubcomposeAsyncImage(
+            modifier = imageModifier,
+            model = imageRequest,
             contentScale = ContentScale.FillWidth,
             contentDescription = null
         )
