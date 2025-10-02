@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
+import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.service.base.entities.InputField
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.user.entities.User
@@ -17,14 +18,19 @@ class ProfileSetupViewModel: AppScreenModel() {
 
     private val userRepo by inject<UserRepository>()
 
-    private var profile by mutableStateOf<User?>(null)
+    private val profile by userRepo.meFlow.onEach {
+        name = it.name
+        surname = it.surname
+        bio = it.bio
+    }.asState(null)
 
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
 
-    var name by mutableStateOf(profile?.name)
-    var surname by mutableStateOf(profile?.surname)
-    var bio by mutableStateOf(profile?.bio)
+    var name by mutableStateOf<String?>(null)
+    var surname by mutableStateOf<String?>(null)
+    var bio by mutableStateOf<String?>(null)
+
 
     val images by derivedStateOf {
         addedImages
@@ -37,16 +43,6 @@ class ProfileSetupViewModel: AppScreenModel() {
     private val isErrorName by derivedStateOf { name.isNullOrEmpty() }
     private val isErrorSurname by derivedStateOf { surname.isNullOrEmpty() }
 
-    init {
-        loadProfile()
-    }
-
-    private fun loadProfile() = launchWithLoading {
-        val profile = userRepo.getMe().getOrNull()
-        name = profile?.name
-        surname = profile?.surname
-        bio = profile?.bio
-    }
 
     val canSave by derivedStateOf {
         isErrorName.not() &&

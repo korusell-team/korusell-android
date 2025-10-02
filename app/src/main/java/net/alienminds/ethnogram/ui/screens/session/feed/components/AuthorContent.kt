@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -17,21 +19,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
+import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.ui.extentions.shimmerState
 import net.alienminds.ethnogram.ui.theme.AppColor
 
 @Composable
-internal fun FeedAuthor(
+internal fun AuthorContent(
     modifier: Modifier = Modifier,
-    author: FeedAuthor?
+    author: Author?,
+    avatarSize: Dp = 24.dp,
+    textStyle: TextStyle = MaterialTheme.typography.titleSmall,
+    textColor: Color = AppColor.gray500,
+    underContent: @Composable ColumnScope.() -> Unit = { }
 ) = Row(
     modifier = modifier,
     verticalAlignment = Alignment.CenterVertically,
@@ -41,7 +50,7 @@ internal fun FeedAuthor(
     val avatarState by avatar.state.collectAsState()
     Box(
         modifier = Modifier
-            .size(24.dp)
+            .size(avatarSize)
             .clip(CircleShape)
             .background(AppColor.gray100)
             .shimmerState(avatarState is AsyncImagePainter.State.Loading),
@@ -67,11 +76,14 @@ internal fun FeedAuthor(
             }
         }
     }
-    Text(
-        text = author?.fullName?: stringResource(R.string.no_author),
-        style = MaterialTheme.typography.titleSmall,
-        color = AppColor.gray500,
-        overflow = TextOverflow.Ellipsis,
-        maxLines = 1
-    )
+    Column {
+        Text(
+            text = author?.fullName ?: stringResource(R.string.no_author),
+            style = textStyle,
+            color = textColor,
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 1
+        )
+        underContent()
+    }
 }

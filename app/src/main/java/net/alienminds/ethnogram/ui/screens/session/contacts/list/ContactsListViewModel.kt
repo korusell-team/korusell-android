@@ -17,12 +17,10 @@ class ContactsListViewModel: AppScreenModel() {
     private val userRepo by inject<UserRepository>()
     private val dataRepo by inject<DataRepository>()
 
-    private val allUsers by userRepo.publicUsersFlow.asState(emptyList())
+    private val allUsers by userRepo.publicUsersFlow.asStateWithLoading(emptyList())
 
-    var allCities by mutableStateOf<List<City>>(emptyList())
-        private set
-    var allCategories by mutableStateOf<List<Category>>(emptyList())
-        private set
+    val allCities by dataRepo.getCitiesFlow().asStateWithLoading(emptyList())
+    val allCategories by dataRepo.getCategoriesFlow().asStateWithLoading(emptyList())
 
     val me by userRepo.meFlow.asState(null)
 
@@ -45,9 +43,6 @@ class ContactsListViewModel: AppScreenModel() {
     val subCategories by filteredSubCategories()
     val users by filteredUsers()
 
-    init {
-        loadDate()
-    }
 
     fun selectCategory(category: Category){
         searchMode = false
@@ -96,21 +91,21 @@ class ContactsListViewModel: AppScreenModel() {
     }
 
     private fun filteredUsers() = derivedStateOf {
-        allUsers?.filterByBlocking(me?.uid.orEmpty())
-            ?.filterByCities(currentCity)
+        allUsers.filterByBlocking(me?.uid.orEmpty())
+            .filterByCities(currentCity)
             .let { filteredUsers ->
                 when(searchMode){
-                    true -> filteredUsers?.filterBySearch(
+                    true -> filteredUsers.filterBySearch(
                         searchText = searchText,
                         categories = categories
                     )
-                    false -> filteredUsers?.filterByCategories(
+                    false -> filteredUsers.filterByCategories(
                         currentCategory = currentCategory,
                         currentSubCategory = currentSubCategory,
                         subCategories = subCategories
                     )
                 }
-            }.orEmpty()
+            }
     }
 
     private fun List<User>.filterByBlocking(myId: String) = filterNot{ user ->
@@ -200,17 +195,6 @@ class ContactsListViewModel: AppScreenModel() {
                 (social.instagram?.lowercase().containsOrFalse(lText)) ||
                 (social.telegram?.lowercase().containsOrFalse(lText)) ||
                 (social.whatsApp?.lowercase().containsOrFalse(lText))
-    }
-
-    fun loadDate() = launchWithLoading{
-        userRepo.getPublicUsers()
-        userRepo.getMe()
-        allCities = dataRepo.getCities().getOrNull().orEmpty()
-        allCategories = dataRepo.getCategories().getOrNull().orEmpty()
-    }
-
-    fun loadMore() = launchWithLoading {
-//        API.users.loadMore(isPublic = true)
     }
 
 

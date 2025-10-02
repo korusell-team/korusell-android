@@ -1,5 +1,8 @@
 package net.alienminds.ethnogram.service.data
 
+import com.google.firebase.firestore.Source
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.data.entities.Category
@@ -16,31 +19,54 @@ class DataRepository internal constructor(
     private val citiesCollection
         get() = firestoreProvider.get().collection("cities")
 
-    private var cachedCategories: List<Category>? = null
-    private var cachedCities: List<City>? = null
+    private var isCategoriesSync = false
+    private var isCitiesSync = false
 
-    suspend fun getCategories() = apiQuery{
-        cachedCategories?.let {
-            return@apiQuery it
+    fun getCategoriesFlow(): Flow<List<Category>> = flow{
+        runCatching {
+            categoriesCollection
+                .get(Source.CACHE)
+                .await()
+                .documents
+                .mapNotNull { Category(it) }
+        }.onSuccess { emit(it) }
+            .onFailure{ emit(emptyList()) }
+
+        if (isCategoriesSync.not()) {
+            runCatching {
+                categoriesCollection
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { Category(it) }
+            }.onSuccess {
+                isCategoriesSync = true
+                emit(it)
+            }.onFailure{ emit(emptyList()) }
         }
-        categoriesCollection
-            .get()
-            .await()
-            .documents
-            .mapNotNull { Category(it) }
-            .also { cachedCategories = it }
     }
 
-    suspend fun getCities() = apiQuery {
-        cachedCities?.let {
-            return@apiQuery it
+    fun getCitiesFlow(): Flow<List<City>> = flow{
+        runCatching {
+            citiesCollection
+                .get(Source.CACHE)
+                .await()
+                .documents
+                .mapNotNull { City(it) }
+        }.onSuccess { emit(it) }.onFailure{ emit(emptyList()) }
+
+        if (isCitiesSync.not()) {
+            runCatching {
+                citiesCollection
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { City(it) }
+            }.onSuccess {
+                isCitiesSync = true
+                emit(it)
+            }.onFailure{ emit(emptyList()) }
         }
-        citiesCollection
-            .get()
-            .await()
-            .documents
-            .mapNotNull{ City(it) }
-            .also { cachedCities = it }
     }
 
 }

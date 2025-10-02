@@ -29,6 +29,7 @@ data class User(
     val reports: List<String> = emptyList(),
     val created: Instant? = null,
     val updated: Instant? = null,
+    val avgRating: Double = 0.0
 ){
 
     internal constructor(
@@ -54,7 +55,8 @@ data class User(
         reports = doc.getValue(Field.REPORTS),
         created = doc.getInstant(Field.CREATED),
         updated = doc.getInstant(Field.UPDATED),
-        social = UserSocial(doc)
+        social = UserSocial(doc),
+        avgRating = doc.getValue(Field.AVG_RATING)
     )
 
     val fullName
@@ -89,6 +91,7 @@ data class User(
         val CITIES = Field("cities", emptyList<Long>())
         val BLOCKED = Field("blockedBy", emptyList<String>())
         val REPORTS = Field("reports", emptyList<String>())
+        val AVG_RATING = Field("avgRating", 0.0)
 
         //Not editable fields
         internal val PHONE = Field<String?>("phone", null)

@@ -4,15 +4,15 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.Navigator
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.data.DataRepository
-import net.alienminds.ethnogram.service.data.entities.Category
-import net.alienminds.ethnogram.service.data.entities.City
+import net.alienminds.ethnogram.service.feed.entities.Author
+import net.alienminds.ethnogram.service.feedback.FeedbackRepository
+import net.alienminds.ethnogram.service.feedback.entities.UserFeedback
 import net.alienminds.ethnogram.service.user.UserRepository
-import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.ui.extentions.root
 import net.alienminds.ethnogram.ui.screens.auth.AuthScreen
 import net.alienminds.ethnogram.utils.AppScreenModel
@@ -25,16 +25,33 @@ class ProfileViewModel(
     private val authRepo by inject<AuthRepository>()
     private val userRepo by inject<UserRepository>()
     private val dataRepo by inject<DataRepository>()
+    private val feedbackRepository by inject<FeedbackRepository>()
 
-    private var allCities by mutableStateOf<List<City>>(emptyList())
-    private var allCategories by mutableStateOf<List<Category>>(emptyList())
+    private val allCities by dataRepo.getCitiesFlow().asState(emptyList())
+    private val allCategories by dataRepo.getCategoriesFlow().asState(emptyList())
 
-    private val me by userRepo.meFlow.asState(null)
+    private val myId by userRepo.myIdFlow.asState("")
 
-    var user by mutableStateOf<User?>(null)
+    val user by when(userId == null){
+        true -> userRepo.meFlow.asStateWithLoading(null)
+        false -> userRepo.getUserFlow(userId).asStateWithLoading(null)
+    }
+
+    val isMe by derivedStateOf { myId == user?.uid }
+
+    private val feedbacksFlow by derivedStateOf {
+        feedbackRepository.getUserFeedbacksFlow(userId?: myId)
+            .onEach { it.fetchAuthors() }
+            .map { it.sortedWith(
+                compareByDescending<UserFeedback> { it.fromUserId == myId }
+                    .thenByDescending { it.createdAt }
+            ) }
+    }
+    val feedbacks by feedbacksFlow.asState(emptyList())
+    val myFeedback by derivedStateOf { feedbacks.find { it.fromUserId == myId } }
+
+    var authors by mutableStateOf<Map<String, Author>>(emptyMap())
         private set
-
-    val isMe by derivedStateOf { me?.uid == user?.uid }
 
 
     val city by derivedStateOf {
@@ -49,12 +66,8 @@ class ProfileViewModel(
         }?: emptyList()
     }
 
-    val isFavorite by derivedStateOf { user?.likes?.any { it == me?.uid } == true }
+    val isFavorite by derivedStateOf { user?.likes?.any { it == myId } == true }
 
-
-    init {
-        loadData()
-    }
 
 
     fun changeFavorite(value: Boolean) = launchWithLoading{
@@ -87,21 +100,11 @@ class ProfileViewModel(
         navigator?.root?.replaceAll(AuthScreen())
     }
 
-    private fun loadData(){
-        loading = true
-        screenModelScope.launch {
-            val myId = userRepo.getMe().getOrNull()?.uid.orEmpty()
-            allCities = dataRepo.getCities().getOrNull().orEmpty()
-            allCategories = dataRepo.getCategories().getOrNull().orEmpty()
-
-            userRepo.getUserFlow(userId?: myId).collect {
-                user = it
-                if (it != null) {
-                    loading = false
-                }
-            }
-            loading = false
-        }
+    private suspend fun List<UserFeedback>.fetchAuthors(){
+        val authorIds = mapNotNull { it.fromUserId }.toTypedArray()
+        authors = userRepo.getAuthors(authorIds = authorIds).getOrNull().orEmpty()
     }
+
+
 
 }

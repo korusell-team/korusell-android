@@ -2,21 +2,16 @@ package net.alienminds.ethnogram.service.feed
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenSource
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.SnapshotListenOptions
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
@@ -36,74 +31,85 @@ class FeedRepository internal constructor(
     private val collection
         get() = firestoreProvider.get().collection("posts")
 
-    private val listenerMutex = Mutex()
-    private var listenerRegistration: ListenerRegistration? = null
-
-    @Volatile
     private var isSyncFeeds = false
-
-    private val _feedsFlow = MutableStateFlow<List<Feed>?>(null)
-    val feedsFlow: StateFlow<List<Feed>?> get() = _feedsFlow
 
     init {
         waitLogout()
     }
 
-    suspend fun getFeeds() = apiQuery{
-        ensureListening()
-        if (isSyncFeeds) {
-            feedsFlow.value?.let { return@apiQuery it }
-        }
-        val result = collection
-            .get()
-            .await()
-            .documents
-            .mapNotNull { Feed(it) }
-            .relevantSort()
-        isSyncFeeds = true
-        return@apiQuery result
-    }
+    fun getFeedsFlow() = callbackFlow{
+        val listenerRegistration = runCatching { collection.addCacheListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addCacheListener
+            }
+            val feeds = snapshot?.documents
+                ?.mapNotNull(::Feed)
+                ?.relevantSort()
+            trySend(feeds).isSuccess
+        } }.getOrNull()
 
-    suspend fun getFeed(
-        feedId: String
-    ) = apiQuery{
-        if (isSyncFeeds) {
-            feedsFlow.value?.find { it.id == feedId }?.let { return@apiQuery it }
+        runCatching {
+            collection.get(Source.CACHE).await().documents
+                .mapNotNull(::Feed)
+                .relevantSort()
+                .also { trySend(it) }
+        }.onFailure { trySend(emptyList()) }
+
+        if (isSyncFeeds.not()){
+            runCatching {
+                collection.get().await().documents
+                    .mapNotNull(::Feed)
+                    .relevantSort()
+                    .also {
+                        isSyncFeeds = true
+                        trySend(it)
+                    }
+            }.onFailure { trySend(emptyList()) }
         }
 
-        collection
-            .document(feedId)
-            .get()
-            .await()
-            .let { Feed(it) }
+        awaitClose {
+            listenerRegistration?.remove()
+        }
     }
 
     fun getFeedFlow(feedId: String): Flow<Feed?> = callbackFlow {
-        launch {
-            val initial = getFeed(feedId).getOrNull()
-            trySend(initial).isSuccess
-        }
-
-        val listenerRegistration = collection
-            .document(feedId)
-            .addSnapshotListener(
-                SnapshotListenOptions.Builder()
-                    .setMetadataChanges(MetadataChanges.INCLUDE)
-                    .setSource(ListenSource.CACHE)
-                    .build()
-            ) { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                launch {
+        val listenerRegistration = runCatching {
+            collection
+                .document(feedId)
+                .addSnapshotListener(
+                    SnapshotListenOptions.Builder()
+                        .setMetadataChanges(MetadataChanges.INCLUDE)
+                        .setSource(ListenSource.CACHE)
+                        .build()
+                ) { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
                     val feed = snapshot?.let(::Feed)
                     trySend(feed).isSuccess
                 }
-            }
+        }.getOrNull()
+
+        runCatching {
+            collection.document(feedId)
+                .get(Source.CACHE).await()
+                .let(::Feed)
+                .also { trySend(it) }
+        }.onFailure { trySend(null) }
+
+        if (isSyncFeeds.not()) {
+            runCatching {
+                collection.document(feedId)
+                    .get().await()
+                    .let(::Feed)
+                    .also { trySend(it) }
+            }.onFailure { trySend(null) }
+        }
 
         awaitClose {
-            listenerRegistration.remove()
+            listenerRegistration?.remove()
         }
     }
 
@@ -152,46 +158,10 @@ class FeedRepository internal constructor(
 
     private fun waitLogout(){
         authRepo.logoutFlow.onEach {
-            ioScope.launch {
-                stopListening()
-                clearCache()
-            }
+            isSyncFeeds = false
         }.launchIn(ioScope)
     }
 
-    private fun clearCache(){
-        _feedsFlow.value = null
-        isSyncFeeds = false
-    }
-
-    private suspend fun stopListening() {
-        listenerMutex.withLock {
-            listenerRegistration?.remove()
-            listenerRegistration = null
-        }
-    }
-
-    private suspend fun ensureListening() {
-        listenerMutex.withLock {
-            if (listenerRegistration == null) {
-                listenCache()
-            }
-        }
-    }
-
-    private fun listenCache(){
-        val registration = collection.addCacheListener { snapshot, error ->
-            if (snapshot != null && snapshot.isEmpty.not()) {
-                val feeds = snapshot.documents.mapNotNull(::Feed)
-                _feedsFlow.value = feeds.relevantSort()
-            }
-        }
-        ioScope.launch {
-            listenerMutex.withLock {
-                listenerRegistration = registration
-            }
-        }
-    }
 
     private fun List<Feed>.relevantSort() = filter {
         it.postValidUntil?.isAfter(Instant.now()) != false

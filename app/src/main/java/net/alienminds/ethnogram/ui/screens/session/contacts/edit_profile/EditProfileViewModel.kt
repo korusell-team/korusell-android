@@ -8,8 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
-import cafe.adriel.voyager.core.model.screenModelScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.mappers.field
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.entities.InputField
@@ -31,7 +30,7 @@ class EditProfileViewModel: AppScreenModel() {
     private val authProfile
         get() = authRepo.currentUser
 
-    private var profile by mutableStateOf<User?>(null)
+    private val profile by userRepo.meFlow.onEach { updateField(it) }.asStateWithLoading(null)
 
     private val cityIds = mutableStateListOf<Long>()
     private val categoryIds = mutableStateListOf<Long>()
@@ -39,8 +38,8 @@ class EditProfileViewModel: AppScreenModel() {
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
 
-    private var allCategories by mutableStateOf<List<Category>>(emptyList())
-    var allCities by mutableStateOf<List<City>>(emptyList())
+    private val allCategories by dataRepo.getCategoriesFlow().asState(emptyList())
+    val allCities by dataRepo.getCitiesFlow().asState(emptyList())
 
     var isPublic by mutableStateOf(false)
     var isAvailablePhone by mutableStateOf(false)
@@ -112,29 +111,7 @@ class EditProfileViewModel: AppScreenModel() {
             }.toMap()
     }
 
-    init {
-        screenModelScope.launch {
-            launchWithLoading {
-                loadData()
-                loadProfile()
-            }.join()
-            observeProfile()
-        }
-    }
-
-    private suspend fun observeProfile(){
-        userRepo.meFlow.collect {
-            updateField(it)
-        }
-    }
-
-    private suspend fun loadProfile(){
-        val me = userRepo.getMe().getOrNull()
-        updateField(me)
-    }
-
     private fun updateField(user: User?) {
-        profile = user
         isPublic = user?.isPublic == true
         isAvailablePhone = user?.phoneIsAvailable == true
         name = user?.name.orEmpty()
@@ -150,11 +127,6 @@ class EditProfileViewModel: AppScreenModel() {
 
         categoryIds.clear()
         categoryIds.addAll(user?.categories.orEmpty())
-    }
-
-    private suspend fun loadData(){
-        allCategories = dataRepo.getCategories().getOrNull().orEmpty()
-        allCities = dataRepo.getCities().getOrNull().orEmpty()
     }
 
     fun addImage(

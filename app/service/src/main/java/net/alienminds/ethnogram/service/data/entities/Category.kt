@@ -2,6 +2,8 @@ package net.alienminds.ethnogram.service.data.entities
 
 import androidx.annotation.Keep
 import com.google.firebase.firestore.DocumentSnapshot
+import net.alienminds.ethnogram.service.base.entities.Field
+import net.alienminds.ethnogram.service.utils.getValue
 
 @Keep
 data class Category(
@@ -14,25 +16,22 @@ data class Category(
     internal constructor(
         doc: DocumentSnapshot
     ): this(
-        id = doc.getLong("id")!!,
-        parentId = doc.getLong("p_id")?: -1,
-        emoji = doc.getString("emoji").orEmpty(),
-        title = doc.getString("title").orEmpty(),
-        tags = doc.getTags()
+        id = doc.getValue(Field.ID),
+        parentId = doc.getValue(Field.PARENT_ID),
+        emoji = doc.getValue(Field.EMOJI),
+        title = doc.getValue(Field.TITLE),
+        tags = doc.getValue(Field.TAGS)
     )
 
-    val isSubCategory
-        get() = parentId != 0L
+    val isCategory get() = parentId == 0L
+    val isSubCategory get() = parentId != 0L
 
-    val isCategory
-        get() = parentId == 0L
 
-    companion object{
-
-        private fun DocumentSnapshot.getTags(): List<String> =
-            (get("tags") as? List<*>)?.mapNotNull {
-                it as? String
-            }.orEmpty()
-
+    private object Field{
+        val ID = Field<Long>("id"){ error("id must not be null") }
+        val PARENT_ID = Field<Long>("p_id", -1)
+        val EMOJI = Field("emoji", "")
+        val TITLE = Field("title", "")
+        val TAGS = Field<List<String>>("tags", emptyList())
     }
 }

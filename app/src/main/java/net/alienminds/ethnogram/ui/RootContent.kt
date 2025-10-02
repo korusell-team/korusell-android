@@ -86,8 +86,8 @@ private fun SetupNotifications(){
         rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
     } else null
     LaunchedEffect(perms?.status) {
-        if (perms?.status?.isGranted == true){
-            perms.launchPermissionRequest()
+        if (perms?.status?.isGranted != true){
+            perms?.launchPermissionRequest()
         }
         FCMService.subscribeNotifications()
     }

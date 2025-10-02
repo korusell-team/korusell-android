@@ -3,10 +3,12 @@ package net.alienminds.ethnogram.service.auth
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
+import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
 
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 internal class PhoneVerificationCallback:
     PhoneAuthProvider.OnVerificationStateChangedCallbacks(),
     MutableStateFlow<PhoneVerificationCallback.PhoneVerificationState> by MutableStateFlow(

@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
@@ -21,32 +23,43 @@ import net.alienminds.ethnogram.ui.theme.AppColor
 internal fun CoverImage(
     modifier: Modifier = Modifier,
     imageUrl: String?,
+    shape: Shape = MaterialTheme.shapes.large
 ){
     imageUrl?.let {
         val image = rememberAsyncImagePainter(it)
         val imageState by image.state.collectAsState()
         if (imageState !is AsyncImagePainter.State.Error) {
-            Box(
-                modifier = modifier
-                    .clip(MaterialTheme.shapes.large)
-                    .background(AppColor.gray100)
-                    .shimmerState(imageState is AsyncImagePainter.State.Loading)
-            ){
-                Image(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .blur(25.dp),
-                    painter = image,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop
-                )
-                Image(
-                    modifier = Modifier.matchParentSize(),
-                    painter = image,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit
-                )
-            }
+            CoverImage(
+                modifier = modifier.shimmerState(imageState is AsyncImagePainter.State.Loading),
+                painter = image,
+                shape = shape
+            )
         }
     }
+}
+
+@Composable
+internal fun CoverImage(
+    modifier: Modifier = Modifier,
+    painter: Painter,
+    shape: Shape = MaterialTheme.shapes.large
+) = Box(
+    modifier = modifier
+        .clip(shape)
+        .background(AppColor.gray100)
+){
+    Image(
+        modifier = Modifier
+            .matchParentSize()
+            .blur(25.dp),
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Crop
+    )
+    Image(
+        modifier = Modifier.matchParentSize(),
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Fit
+    )
 }

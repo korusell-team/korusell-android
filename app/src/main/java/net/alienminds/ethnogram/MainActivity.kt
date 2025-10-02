@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import cafe.adriel.voyager.core.screen.Screen
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.ui.RootContent
 import net.alienminds.ethnogram.utils.AppContextWrapper

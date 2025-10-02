@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
-class FirestoreProvider {
+internal class FirestoreProvider {
 
     private val mutex = Mutex()
     private var firestore = Firebase.firestore

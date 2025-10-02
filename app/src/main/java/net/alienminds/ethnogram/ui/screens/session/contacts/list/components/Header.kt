@@ -22,9 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,14 +33,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.service.data.entities.Category
-import net.alienminds.ethnogram.ui.extentions.custom.dialogs.ChipPickerDialog
-import net.alienminds.ethnogram.ui.extentions.custom.dialogs.rememberAppDialogState
 import net.alienminds.ethnogram.ui.theme.AppColor
 
 @Composable
@@ -56,11 +51,14 @@ fun ContactsScreenHeader(
     subCategories: List<Category>,
     onSelectCategory: (Category) -> Unit,
     onSwitchSearchMode: (Boolean) -> Unit,
-    onChangeSearch: (String) -> Unit
+    onChangeSearch: (String) -> Unit,
+    onShowAllCategories: () -> Unit
 ) = Column(
     modifier = modifier,
     verticalArrangement = Arrangement.spacedBy(8.dp)
 ){
+
+
     val visibleSubCategories by remember(
         searchText, subCategories, currentCategory
     ){ derivedStateOf {
@@ -128,10 +126,10 @@ fun ContactsScreenHeader(
 
     FiltersCategories(
         showAllIcon = searchMode.not(),
-        dialogTitle = stringResource(R.string.categories),
         categories = categories,
         currentCategory = currentCategory,
-        onSelect = onSelectCategory
+        onSelect = onSelectCategory,
+        onShowAll = onShowAllCategories
     )
 
 
@@ -139,11 +137,11 @@ fun ContactsScreenHeader(
         visible = visibleSubCategories
     ) {
         FiltersCategories(
-            showAllIcon = searchMode.not(),
-            dialogTitle = stringResource(R.string.categories),
+            showAllIcon = false,
             categories = subCategories,
             currentCategory = currentSubCategory,
-            onSelect = onSelectCategory
+            onSelect = onSelectCategory,
+            onShowAll = onShowAllCategories
         )
     }
 }
@@ -154,13 +152,13 @@ fun ContactsScreenHeader(
 fun FiltersCategories(
     modifier: Modifier = Modifier,
     showAllIcon: Boolean,
-    dialogTitle: String,
     categories: List<Category>,
     currentCategory: Category?,
-    onSelect: (Category) -> Unit
+    onSelect: (Category) -> Unit,
+    onShowAll: () -> Unit
 ){
     val lazyState = rememberLazyListState()
-    val pickerState = rememberAppDialogState()
+//    val pickerState = rememberAppDialogState()
     LaunchedEffect(currentCategory) {
         runCatching {
             val index = categories.indexOf(currentCategory)
@@ -179,7 +177,7 @@ fun FiltersCategories(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if(showAllIcon)
-            openAllItem(pickerState::show)
+            openAllItem{ onShowAll() }
 
         textItems(
             categories = categories,
@@ -187,28 +185,30 @@ fun FiltersCategories(
             onSelect = onSelect
         )
     }
-    if (showAllIcon) {
-        ChipPickerDialog(
-            state = pickerState,
-            title = dialogTitle,
-            items = categories,
-            itemTitle = { "${it.emoji} ${it.title}" },
-            itemSelected = { it == currentCategory },
-            onSelect = onSelect
-        )
-    }
+//    if (showAllIcon) {
+//        ChipPickerDialog(
+//            state = pickerState,
+//            title = dialogTitle,
+//            items = categories,
+//            itemTitle = { "${it.emoji} ${it.title}" },
+//            itemSelected = { it == currentCategory },
+//            onSelect = onSelect
+//        )
+//    }
 }
 
 private fun LazyListScope.openAllItem(
     onOpenAll: () -> Unit
 ) = item {
-    FilledIconButton(
+    TextButton(
         modifier = Modifier
-            .shadow(4.dp, CircleShape)
-            .size(34.dp)
+            .height(34.dp)
             .animateItem(),
         shape = CircleShape,
-        colors = IconButtonDefaults.filledIconButtonColors(
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = ButtonDefaults.textButtonColors(
             containerColor = AppColor.gray100
         ),
         onClick = onOpenAll
@@ -218,6 +218,11 @@ private fun LazyListScope.openAllItem(
             imageVector = Icons.Default.Menu,
             tint = AppColor.gray700,
             contentDescription = null
+        )
+        Text(
+            text = "Все категории",
+            style = MaterialTheme.typography.labelLarge,
+            color = AppColor.gray700
         )
     }
 }

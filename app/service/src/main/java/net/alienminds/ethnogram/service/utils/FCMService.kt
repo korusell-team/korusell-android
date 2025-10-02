@@ -8,14 +8,9 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.tasks.await
-import net.alienminds.ethnogram.service.BuildConfig
 import net.alienminds.ethnogram.service.R
 
 class FCMService : FirebaseMessagingService() {
-
-//    init {
-//        getNotificationManager(this).createChannel()
-//    }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
@@ -50,7 +45,6 @@ class FCMService : FirebaseMessagingService() {
         private const val CHANNEL_NEWS = "fcm_default_channel"
 
         suspend fun subscribeNotifications() = runCatching {
-//            showDeviceToken()
             FirebaseMessaging
                 .getInstance()
                 .subscribeToTopic(TOPIC_ALL)
@@ -61,16 +55,6 @@ class FCMService : FirebaseMessagingService() {
             Log.d(LOG_TAG, "Subscribed to notifications")
         }
 
-//        suspend fun unsubscribeNotifications() = runCatching{
-//            FirebaseMessaging
-//                .getInstance()
-//                .unsubscribeFromTopic(TOPIC_ALL)
-//                .await()
-//        }.onFailure {
-//            Log.e(LOG_TAG, "Failed to unsubscribe from notifications", it)
-//        }.onSuccess {
-//            Log.d(LOG_TAG, "Unsubscribed from notifications")
-//        }
 
         private fun NotificationManager.createChannel(){
             runCatching {

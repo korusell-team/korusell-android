@@ -4,33 +4,27 @@ import android.net.Uri
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenSource
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.SnapshotListenOptions
+import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.storage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.base.entities.InputField
-import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
+import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
-import net.alienminds.ethnogram.service.utils.addCacheListener
 import java.util.UUID
 
 class UserRepository internal constructor(
@@ -42,182 +36,248 @@ class UserRepository internal constructor(
 
     private val collection
         get() = firestoreProvider.get().collection("users")
-
-    private val listenerMutex = Mutex()
-    private var listenerRegistration: ListenerRegistration? = null
-
-    @Volatile
+    
     private var isSyncMe = false
-
-    @Volatile
     private var isSyncPublic = false
+    
+    private val syncedUsers = mutableSetOf<String>() // list of user uids
+    
+    init {
+        authRepository.logoutFlow.onEach { 
+            isSyncMe = false
+            isSyncPublic = false
+            syncedUsers.clear()
+        }.launchIn(ioScope)
+    }
 
-    @Volatile
-    private var syncUsers = mutableListOf<String>()//list uid
-
-    private val _meFlow = MutableStateFlow<User?>(null)
-    val meFlow: StateFlow<User?> get() = _meFlow
-
-    private val _publicUsersFlow = MutableStateFlow<List<User>?>(null)
-    val publicUsersFlow: StateFlow<List<User>?> get() = _publicUsersFlow
-
-    private val _usersFlow = MutableStateFlow<List<User>?>(null)
-    val usersFlow: StateFlow<List<User>?> get() = _usersFlow
-
-
-
-    init { waitLogout() }
 
     suspend fun getMe() = apiQuery{
-        ensureListening()
-        val currentUser = authRepository.currentUser
+        val currentUser = authRepository.currentUser 
             ?: throw IllegalStateException("User is not signed in")
 
         val phone = currentUser.phoneNumber
             ?: throw IllegalStateException("User phone is null")
 
-        if (isSyncMe) {
-            meFlow.value?.takeIf { it.phone == phone }?.let { return@apiQuery it }
-            publicUsersFlow.value?.find { it.phone == phone }?.let { return@apiQuery it }
-        }
-
-        val result = collection
+        collection
             .whereEqualTo(User.Field.PHONE.key, phone)
             .limit(1)
-            .get()
-            .await()
-            .documents
-            .firstOrNull()
-            ?.let(::User)
-            ?: throw NoSuchElementException("User not found in Firestore")
-        isSyncMe = true
-        return@apiQuery result
+            .get(when(isSyncMe) {
+                true -> Source.CACHE
+                false -> Source.DEFAULT
+            })
+            .await().documents.firstOrNull()
+            ?.let(::User)?.also { 
+                isSyncMe = true
+            }?: throw NoSuchElementException("User not found in Firestore")
     }
-
-
-    fun getUserFlow(userId: String): Flow<User?> = callbackFlow {
-        launch {
-            val initial = getUser(userId).getOrNull()
-            trySend(initial).isSuccess
+    
+    val meFlow get() = callbackFlow{
+        closeIfLogout()
+        val user = getMe().getOrNull()?.also {
+            trySend(it)
         }
 
-        val listenerRegistration = collection
-            .whereEqualTo(User.Field.UID.key, userId)
-            .limit(1)
-            .addSnapshotListener(
-                SnapshotListenOptions.Builder()
-                    .setMetadataChanges(MetadataChanges.INCLUDE)
-                    .setSource(ListenSource.CACHE)
-                    .build()
-            ) { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                val user = snapshot?.documents?.firstOrNull()?.let(::User)
-                trySend(user).isSuccess
-            }
+        val listenerRegistration = user?.uid?.let { userId ->
+            runCatching {
+                collection
+                    .document(userId)
+                    .addSnapshotListener(
+                        SnapshotListenOptions.Builder()
+                            .setMetadataChanges(MetadataChanges.INCLUDE)
+                            .setSource(ListenSource.CACHE)
+                            .build()
+                    ) { snapshot, error ->
+                        if (error != null) {
+                            close(error)
+                            return@addSnapshotListener
+                        }
+                        val updatedUser = snapshot?.let(::User)
+                        if (updatedUser != null) {
+                            trySend(updatedUser).isSuccess
+                        }
+                    }
+            }.getOrNull()
+        }
 
         awaitClose {
-            listenerRegistration.remove()
+            listenerRegistration?.remove()
         }
     }
 
-    suspend fun getUser(
-        uid: String
-    ) = apiQuery{
-        ensureListening()
-        if (isSyncPublic) {
-            publicUsersFlow.value?.find { it.uid == uid }?.let { return@apiQuery it }
-        }
-        if (isSyncMe) {
-            meFlow.value?.takeIf { it.uid == uid }?.let { return@apiQuery it }
-        }
-        if (syncUsers.contains(uid)){
-            usersFlow.value?.find { it.uid == uid }?.let { return@apiQuery it }
+    private suspend fun getUser(userId: String) = apiQuery{
+        val isCached = syncedUsers.contains(userId)
+        if (isCached.not() && isSyncPublic){
+            runCatching {
+                collection
+                    .whereEqualTo(User.Field.UID.key, userId)
+                    .limit(1)
+                    .get(Source.CACHE).await().documents
+                    .firstOrNull()?.let(::User)?.also {
+                        if (it.isPublic == true) {
+                            it.uid?.let(syncedUsers::add)
+                        }
+                        return@apiQuery it
+                    }
+            }
         }
         collection
-            .whereEqualTo(User.Field.UID.key, uid)
+            .whereEqualTo(User.Field.UID.key, userId)
             .limit(1)
-            .get()
-            .await()
-            .documents
-            .firstOrNull()
-            ?.let(::User)
-            ?.also{ it.uid?.let(syncUsers::add) }
-            ?: throw NoSuchElementException("User not found in Firestore")
+            .get(
+                when (isCached) {
+                    true -> Source.CACHE
+                    false -> Source.DEFAULT
+                }
+            )
+            .await().documents.firstOrNull()
+            ?.let(::User)?.also {
+                it.uid?.let(syncedUsers::add)
+            } ?: throw NoSuchElementException("User not found in Firestore")
+    }
+
+    fun getUserFlow(userId: String) = callbackFlow{
+        closeIfLogout()
+        val user = getUser(userId).getOrNull()?.also {
+            trySend(it)
+        }
+
+        val listenerRegistration = user?.uid?.let { userId ->
+            runCatching {
+                collection
+                    .document(userId)
+                    .addSnapshotListener(
+                        SnapshotListenOptions.Builder()
+                            .setMetadataChanges(MetadataChanges.INCLUDE)
+                            .setSource(ListenSource.CACHE)
+                            .build()
+                    ) { snapshot, error ->
+                        if (error != null) {
+                            close(error)
+                            return@addSnapshotListener
+                        }
+                        val updatedUser = snapshot?.let(::User)
+                        if (updatedUser != null) {
+                            trySend(updatedUser).isSuccess
+                        }
+                    }
+            }.getOrNull()
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
+    }
+    
+    val publicUsersFlow get() = callbackFlow{
+        closeIfLogout()
+        val listenerRegistration = runCatching {
+            collection
+                .whereEqualTo(User.Field.IS_PUBLIC.key, true)
+                .addSnapshotListener(
+                    SnapshotListenOptions.Builder()
+                        .setMetadataChanges(MetadataChanges.INCLUDE)
+                        .setSource(ListenSource.CACHE)
+                        .build()
+                ) { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    val users = snapshot?.documents?.mapNotNull(::User)?.sortedPriorityLikes()
+                        ?: emptyList()
+                    trySend(users).isSuccess
+                }
+        }.getOrNull()
+
+        runCatching {
+            collection
+                .whereEqualTo(User.Field.IS_PUBLIC.key, true)
+                .get(Source.CACHE).await().documents
+                .mapNotNull(::User).sortedPriorityLikes()
+                .also { trySend(it).isSuccess }
+        }.onFailure { trySend(emptyList()) }
+
+        if (isSyncPublic.not()){
+            runCatching {
+                collection
+                    .whereEqualTo(User.Field.IS_PUBLIC.key, true)
+                    .get().await().documents
+                    .mapNotNull(::User).sortedPriorityLikes()
+                    .also {
+                        isSyncPublic = true
+                        trySend(it).isSuccess
+                    }
+            }.onFailure { trySend(emptyList()) }
+        }
+
+        awaitClose {
+            listenerRegistration?.remove()
+        }
     }
 
     suspend fun getAuthor(
         authorId: String
     ) = apiQuery{
         getUser(authorId).getOrNull()?.let {
-            FeedAuthor(it)
+            Author(it)
         }?: throw NoSuchElementException("Author not found in Firestore")
     }
 
     suspend fun getAuthors(
         vararg authorIds: String
     ) = apiQuery{
-        val found = mutableMapOf<String, FeedAuthor>()
-
-        for (aid in authorIds) {
-            if (isSyncMe) {
-                meFlow.value?.takeIf { it.uid == aid }?.let {
-                    found[aid] = FeedAuthor(it)
-                }
-            }
-            if (isSyncPublic) {
-                publicUsersFlow.value?.find { it.uid == aid }?.let {
-                    found[aid] = FeedAuthor(it)
-                }
-            }
-            if (syncUsers.contains(aid)) {
-                usersFlow.value?.find { it.uid == aid }?.let {
-                    found[aid] = FeedAuthor(it)
-                }
-            }
-        }
-        val toFetch = authorIds.filterNot { found.containsKey(it) }
-
-        if (toFetch.isNotEmpty()) {
-            val chunks = toFetch.chunked(10) // Firestore limit for `whereIn`
+        val found = mutableMapOf<String, Author>()
+        
+        val distinctAuthorIds = authorIds.distinct()
+        val cachedAuthors = distinctAuthorIds.filter { syncedUsers.contains(it) }
+        val notCachedAuthors = distinctAuthorIds.filterNot { syncedUsers.contains(it) }
+        
+        if (cachedAuthors.isNotEmpty()){
+            val chunks = cachedAuthors.chunked(10) // Firestore limit for `whereIn`
             for (chunk in chunks) {
-                val snapshot = collection
+                collection
                     .whereIn(User.Field.UID.key, chunk)
-                    .get()
-                    .await()
-
-                snapshot.documents
+                    .get(Source.CACHE).await().documents
                     .mapNotNull(::User)
                     .forEach { user ->
                         user.uid?.let {
-                            syncUsers.add(it)
-                            found[it] = FeedAuthor(user)
+                            found[it] = Author(user)
                         }
                     }
             }
         }
+
+        if (notCachedAuthors.isNotEmpty()){
+            val chunks = notCachedAuthors.chunked(10) // Firestore limit for `whereIn`
+            for (chunk in chunks) {
+                collection
+                    .whereIn(User.Field.UID.key, chunk)
+                    .get().await().documents
+                    .mapNotNull(::User)
+                    .forEach { user ->
+                        user.uid?.let {
+                            found[it] = Author(user)
+                        }
+                    }
+            }
+        }
+        
         return@apiQuery found.toMap()
     }
 
-    suspend fun getPublicUsers() = apiQuery {
-        ensureListening()
-        if (isSyncPublic) {
-            publicUsersFlow.value?.let {
-                return@apiQuery it.sortedPriorityLikes()
-            }
-        }
-        val result = collection
-            .onlyPublic()
-            .get()
-            .await()
-            .documents
-            .mapNotNull(::User)
-            .sortedPriorityLikes()
-        isSyncPublic = true
-        return@apiQuery result
+    internal suspend fun updateUser(
+        userId: String,
+        vararg values: InputField<Any>
+    ){
+        val map = values.associate { Pair(it.field.key, it.value) }.toMutableMap()
+        map[User.Field.UID.key] = userId
+        map[User.Field.UPDATED.key] = FieldValue.serverTimestamp()
+
+        val task = collection
+            .document(userId)
+            .set(map, SetOptions.merge())
+        task.await()
+        task.isSuccessful
     }
 
     suspend fun updateMe(
@@ -293,10 +353,6 @@ class UserRepository internal constructor(
         addToArray(userId, User.Field.REPORTS, getMyId())
     }
 
-    suspend fun getMyId(
-        me: User? = null
-    ) = (me?: getMe().getOrNull())?.uid?: authRepository.currentUser?.uid?: throw IllegalStateException("User is not signed in")
-
     private suspend fun <T>addToArray(
         userId: String,
         field: Field<List<T>>,
@@ -328,68 +384,40 @@ class UserRepository internal constructor(
         task.await()
         return task.isSuccessful
     }
-
-
-    private fun waitLogout(){
-        authRepository.logoutFlow.onEach {
-            stopListening()
-            clearCache()
+    
+    val myIdFlow
+        get() = channelFlow {
+            val id = runCatching { getMyId() }.getOrNull()
+            if (id != null) {
+                trySend(id).isSuccess
+            }
+            awaitClose {  }
+        }
+    
+    private fun ProducerScope<*>.closeIfLogout(){
+        authRepository.logoutFlow.onEach { 
+            this.close(IllegalStateException("User logged out"))
         }.launchIn(ioScope)
     }
 
-    private fun clearCache(){
-        _meFlow.value = null
-        _publicUsersFlow.value = null
-        isSyncMe = false
-        isSyncPublic = false
-    }
-
-    private suspend fun stopListening() {
-        listenerMutex.withLock {
-            listenerRegistration?.remove()
-            listenerRegistration = null
+    internal suspend fun getMyId(
+        me: User? = null
+    ): String {
+        me?.uid?.let { 
+            return it
         }
-    }
-
-    private suspend fun ensureListening() {
-        listenerMutex.withLock {
-            if (listenerRegistration == null) {
-                listenCache()
-            }
+        getMe().getOrNull()?.uid?.let {
+            return it
         }
-    }
-
-    private fun listenCache(){
-        val registration = collection.addCacheListener { snapshot, error ->
-            if (snapshot != null && snapshot.isEmpty.not()) {
-                val users = snapshot.documents.mapNotNull(::User).sortedPriorityLikes()
-                val public = users.filter { it.isPublic == true }
-                val nonPublic = users.filterNot { it.isPublic == true }
-
-                _publicUsersFlow.value = public
-                _usersFlow.value = nonPublic
-
-                authRepository.currentUser?.phoneNumber
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { phone ->
-                        _meFlow.value = users.find { it.phone == phone }
-                    }
-            }
+        authRepository.currentUser?.uid?.let {
+            return it
         }
-        ioScope.launch {
-            listenerMutex.withLock {
-                listenerRegistration = registration
-            }
-        }
+        throw IllegalStateException("User is not signed in")
     }
-
-    private fun Query.onlyPublic() =
-        whereEqualTo(User.Field.IS_PUBLIC.key, true)
 
     private fun List<User>.sortedPriorityLikes() = sortedWith(
         compareByDescending<User> { it.priority ?: 0L }
             .thenByDescending { it.likes.size }
     )
-
-
+    
 }

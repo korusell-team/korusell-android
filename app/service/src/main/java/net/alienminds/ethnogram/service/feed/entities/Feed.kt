@@ -25,6 +25,7 @@ data class Feed(
     val eventDetails: EventDetails? = null,
     val postValidUntil: Instant? = null,
     val promotedUntil: Instant? = null,
+    val webLink: String? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
@@ -43,6 +44,7 @@ data class Feed(
         eventDetails = doc.parseEvent(),
         postValidUntil = doc.getTimestamp("postValidUntil")?.toInstant(),
         promotedUntil = doc.getTimestamp("promotedUntil")?.toInstant(),
+        webLink = doc.getString("webLink")?: doc.getString("youtubeLink"),
         createdAt = doc.getTimestamp("created")?.toInstant(),
         updatedAt = doc.getTimestamp("updated")?.toInstant()
     )
@@ -115,7 +117,7 @@ data class EventDetails(
     )
 }
 
-data class FeedAuthor(
+data class Author(
     val avatarUrl: String? = null,
     val name: String? = null,
     val surname: String? = null,

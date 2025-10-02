@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -85,16 +87,24 @@ import net.alienminds.ethnogram.mappers.openInApp
 import net.alienminds.ethnogram.mappers.roundIcon
 import net.alienminds.ethnogram.mappers.title
 import net.alienminds.ethnogram.service.data.entities.Category
+import net.alienminds.ethnogram.service.feed.entities.Author
+import net.alienminds.ethnogram.service.feedback.entities.UserFeedback
 import net.alienminds.ethnogram.service.user.entities.UserSocialType
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.buttons.DropdownButton
 import net.alienminds.ethnogram.ui.extentions.custom.PageIndicator
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
+import net.alienminds.ethnogram.ui.screens.session.contacts.all_feedbacks.AllFeedbacksScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.edit_profile.EditProfileScreen
+import net.alienminds.ethnogram.ui.screens.session.contacts.send_feedback.SendFeedbackScreen
+import net.alienminds.ethnogram.ui.screens.session.feed.components.AuthorContent
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.IntentActions
 import net.alienminds.ethnogram.utils.openLinkExternal
+import net.alienminds.ethnogram.utils.rememberRelativeTime
+import java.time.Instant
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 class ProfileScreen(
     private val userId: String? = null
@@ -200,6 +210,88 @@ class ProfileScreen(
                         links = vm.user?.social?.activeLinks.orEmpty()
                     )
                 }
+                HorizontalDivider(Modifier.padding(16.dp))
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    text = buildAnnotatedString {
+                        append(stringResource(R.string.rating))
+                        append(": ")
+                        withStyle(SpanStyle(
+                            color = AppColor.gray700,
+                            fontWeight = FontWeight.Medium
+                        )){
+                            if (vm.feedbacks.isNotEmpty()) {
+                                vm.user?.avgRating?.roundToInt()?.toString()?.let{
+                                    append("⭐\uFE0F$it")
+                                }
+                            }
+                            append(stringResource(R.string.feedbacks_count, vm.feedbacks.size))
+                        }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColor.gray900,
+                    fontSize = 16.sp
+                )
+                HorizontalDivider(Modifier.padding(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ){
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = stringResource(R.string.feedbacks),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppColor.gray900,
+                        fontSize = 16.sp
+                    )
+                    if (vm.feedbacks.isNotEmpty()) {
+                        Spacer(Modifier.weight(1f))
+                        TextButton(
+                            onClick = { vm.user?.uid?.let { navigator?.push(AllFeedbacksScreen(it)) } }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.all_feedbacks),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AppColor.blue400,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+                if (vm.isMe.not()) {
+                    OutlinedButton(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        onClick = { vm.user?.uid?.let { navigator?.push(SendFeedbackScreen(
+                            userId = it,
+                            currentRating = vm.myFeedback?.rating,
+                            currentComment = vm.myFeedback?.comment,
+                        )) } }
+                    ) {
+                        Text(
+                            text = when(vm.myFeedback == null) {
+                                true -> stringResource(R.string.write_feedback)
+                                false -> stringResource(R.string.edit_feedback)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColor.gray700,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+                vm.feedbacks.take(5).forEach { feedback ->
+                    FeedbackItem(
+                        modifier = Modifier
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = 8.dp
+                            )
+                            .fillMaxWidth(),
+                        feedback = feedback,
+                        author = feedback.fromUserId?.let { vm.authors[it] }
+                    )
+                }
 
             }
             Column {
@@ -237,12 +329,14 @@ class ProfileScreen(
 
         Toolbar(
             modifier = Modifier
-                .background(Brush.verticalGradient(listOf(
-                    toolbarColor,
-//                    toolbarColor,
-                    AppColor.gray50.copy(toolbarAlpha)
-                )))
-//                .background(AppColor.gray50.copy(toolbarAlpha))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            toolbarColor,
+                            AppColor.gray50.copy(toolbarAlpha)
+                        )
+                    )
+                )
                 .statusBarsPadding(),
             isMe = vm.isMe,
             isFavorite = vm.isFavorite,
@@ -251,6 +345,51 @@ class ProfileScreen(
             onBlock = { vm.blockUser(navigator) },
             onReport = { vm.reportUser(navigator) },
             onEditProfile = { navigator?.push(EditProfileScreen()) }
+        )
+    }
+
+    @Composable
+    private fun FeedbackItem(
+        modifier: Modifier = Modifier,
+        feedback: UserFeedback,
+        author: Author?
+    ) = Column(
+        modifier = modifier
+            .shadow(
+                elevation = 2.dp,
+                shape = MaterialTheme.shapes.medium
+            )
+            .background(
+                color = AppColor.gray200,
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(16.dp)
+    ) {
+        Row {
+            AuthorContent(
+                modifier = Modifier.weight(1f),
+                author = author,
+                avatarSize = 32.dp,
+                textStyle = MaterialTheme.typography.titleSmall,
+                textColor = AppColor.gray900
+            ) {
+                Text(
+                    text = "⭐\uFE0F ${feedback.rating.roundToInt()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColor.gray900,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            RelativeTime(
+                instant = feedback.updatedAt?: feedback.createdAt
+            )
+        }
+        Text(
+            modifier = Modifier.padding(top = 8.dp),
+            text = feedback.comment.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = AppColor.gray700
         )
     }
 
@@ -342,7 +481,7 @@ class ProfileScreen(
             .background(AppColor.gray200)
     ){
         if (images.isEmpty()){
-            if (loading == false) {
+            if (loading.not()) {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -583,10 +722,12 @@ class ProfileScreen(
                     .combinedClickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onLongClick = { context.copyToClipboard(
-                            label = type.name,
-                            link = type.displayValue(value)
-                        ) },
+                        onLongClick = {
+                            context.copyToClipboard(
+                                label = type.name,
+                                link = type.displayValue(value)
+                            )
+                        },
                         onClick = { type.openInApp(context, value) }
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -653,6 +794,24 @@ class ProfileScreen(
             color = AppColor.gray500,
             textAlign = TextAlign.Center
         )
+    }
+
+    @Composable
+    private fun RelativeTime(
+        modifier: Modifier = Modifier,
+        instant: Instant?
+    ){
+        instant?.let { createdAt ->
+            val relativeTime by createdAt.rememberRelativeTime()
+            Text(
+                modifier = modifier,
+                text = relativeTime,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColor.gray500,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1
+            )
+        }
     }
 
 

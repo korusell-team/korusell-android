@@ -52,10 +52,12 @@ import net.alienminds.ethnogram.service.feed.entities.PromoDetail
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
-import net.alienminds.ethnogram.ui.screens.session.feed.components.CoverImage
-import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedAuthor
+import net.alienminds.ethnogram.ui.screens.session.feed.components.AuthorContent
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedTypeMark
+import net.alienminds.ethnogram.ui.screens.session.feed.components.LinkPreviewCover
+import net.alienminds.ethnogram.ui.screens.session.feed.components.LocalLinkPreviewStateHolder
 import net.alienminds.ethnogram.ui.theme.AppColor
+import ru.iquack.linkpreview.compose.LinkPreviewState
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -75,6 +77,9 @@ internal class FeedDetailsScreen(
         val navigator = LocalNavigator.current
         val vm = rememberScreenModel { FeedDetailsModel(feedId) }
         val uriHandler = LocalUriHandler.current
+
+        val previewState = LocalLinkPreviewStateHolder.current.getState(vm.feed?.webLink.orEmpty())
+        val coverFail = previewState is LinkPreviewState.Idle && vm.feed?.imageUrl == null
         Toolbar(
             modifier = Modifier.statusBarsPadding(),
             title = vm.feed?.title.orEmpty(),
@@ -84,16 +89,25 @@ internal class FeedDetailsScreen(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
         ){
-            if (vm.feed?.imageUrl != null) {
+            if (coverFail.not()) {
                 Box(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
-                    CoverImage(
+                    LinkPreviewCover(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1f),
-                        imageUrl = vm.feed?.imageUrl,
+                            .aspectRatio(1f)
+                            .clip(MaterialTheme.shapes.large),
+                        linkPreviewUrl = vm.feed?.webLink,
+                        fallbackImageUrl = vm.feed?.imageUrl,
+                        onShowInfo = { vm.feed?.webLink?.let(uriHandler::openUri) }
                     )
+//                    CoverImage(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .aspectRatio(1f),
+//                        imageUrl = vm.feed?.imageUrl,
+//                    )
                     vm.feed?.type?.let { type ->
                         FeedTypeMark(
                             modifier = Modifier.padding(8.dp),
@@ -149,7 +163,7 @@ internal class FeedDetailsScreen(
                 )
             }
 
-            FeedAuthor(
+            AuthorContent(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .padding(horizontal = 16.dp)

@@ -6,7 +6,6 @@ import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.utils.AppScreenModel
 import net.alienminds.ethnogram.utils.UserStateProvider
 import org.koin.core.component.inject
-import kotlin.getValue
 
 internal class OnboardingModel(
     private val navigatorRequester: () -> Navigator

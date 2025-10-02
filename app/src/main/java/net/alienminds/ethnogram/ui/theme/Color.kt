@@ -8,6 +8,7 @@ object AppColor{//TODO: remove unused
     val black = Color(0xFF000000)
 
     //Red
+    val red = Color(0xFFFF0000)
     val red50 = Color(0XFFFFEBEE)
     val red100 = Color(0XFFFFCDD2)
     val red200 = Color(0XFFEF9A9A)

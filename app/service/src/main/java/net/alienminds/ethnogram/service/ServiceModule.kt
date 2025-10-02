@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.data.DataRepository
 import net.alienminds.ethnogram.service.feed.FeedRepository
+import net.alienminds.ethnogram.service.feedback.FeedbackRepository
 import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
@@ -27,6 +28,7 @@ val serviceModule = module{
     single { DataRepository(get()) }
     single { FeedRepository(get(), get(), get(), get()) }
     single { UserRepository(get(), get(), get(), get()) }
+    single { FeedbackRepository(get(), get()) }
 
 
 }

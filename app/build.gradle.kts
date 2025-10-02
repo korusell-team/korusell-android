@@ -6,10 +6,10 @@ plugins {
     alias(libs.plugins.crashlitics)
 }
 
-val versionMajor = 0
-val versionMinor = 1 //max 9
+val versionMajor = 1
+val versionMinor = 0 //max 9
 val versionPatch = 0 //max 9
-val versionBuild = 9 //max 99
+val versionBuild = 0 //max 99
 
 android {
     signingConfigs {
@@ -109,7 +109,10 @@ dependencies {
     //Permissions
     implementation(libs.accompanist.permissions)
 
+    implementation(libs.iquack.link.preview)
+
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.firebase.analytics)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
 }

@@ -103,6 +103,20 @@
     <string name="start">Начало: %1$s</string>
     <string name="tape">Лента</string>
     <string name="no_author">Без автора</string>
+    <string name="feedbacks">Отзывы</string>
+    <string name="rating">Рейтинг</string>
+    <string name="feedbacks_count">" (%1$d отзывов)"</string>
+    <string name="write_feedback">Оставить отзыв</string>
+    <string name="all_feedbacks">Все отзывы…</string>
+    <string name="send_feedback_descr">Оцените работу этого человека/сервиса и оставьте коментарий. Ваш отзыв помогает другим пользователям и помогает улучшать качество услуг.</string>
+    <string name="share_your_expirence">Поделитесь\nсвоим опытом</string>
+    <string name="write_your_comment">Напишите ваш комментарий здесь</string>
+    <string name="err_comment_empty">Пожалуйста, оставьте свой комментарий</string>
+    <string name="err_rating_empty">Пожалуйста, выберите оценку</string>
+    <string name="send">Отправить</string>
+    <string name="back">Назад</string>
+    <string name="please_wait_load_feedback">Пожалуйста, дождитесь окончания отправки отзыва</string>
+    <string name="edit_feedback">Изменить отзыв</string>
 
 
 </resources>

@@ -4,11 +4,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import cafe.adriel.voyager.core.model.screenModelScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.service.feed.FeedRepository
+import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.feed.entities.Feed
-import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
@@ -20,24 +19,17 @@ internal class FeedDetailsModel(
     private val feedRepo by inject<FeedRepository>()
     private val userRepo by inject<UserRepository>()
 
-    private var myId by mutableStateOf<String?>(null)
+    private val myId by userRepo.myIdFlow.asState(null)
 
-    var feed by mutableStateOf<Feed?>(null)
+    var author by mutableStateOf<Author?>(null)
         private set
 
-    var author by mutableStateOf<FeedAuthor?>(null)
+    var feed by feedRepo.getFeedFlow(feedId)
+        .onEach { it?.fetchAuthor() }
+        .asMutableStateWithLoading(null)
         private set
 
     val isFavorite by derivedStateOf { feed?.likeList?.any { it == myId } == true }
-
-    init {
-        screenModelScope.launch {
-            launchWithLoading {
-                loadFeed()
-            }.join()
-            observeFeed()
-        }
-    }
 
     fun changeFavoriteFeed(
         isFavorite: Boolean
@@ -55,15 +47,8 @@ internal class FeedDetailsModel(
         )
     }
 
-    private suspend fun observeFeed(){
-        feedRepo.getFeedFlow(feedId).collect {
-            feed = it
-        }
+    private suspend fun Feed.fetchAuthor() = authorId?.let {
+        author = userRepo.getAuthor(it).getOrNull()
     }
 
-    private suspend fun loadFeed(){
-        feed = feedRepo.getFeed(feedId).getOrNull()
-        author = feed?.authorId?.let { userRepo.getAuthor(it).getOrNull() }
-        myId = userRepo.getMyId()
-    }
 }

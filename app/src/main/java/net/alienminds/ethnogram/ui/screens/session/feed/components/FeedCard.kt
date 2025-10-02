@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,15 +21,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.feed.entities.Feed
-import net.alienminds.ethnogram.service.feed.entities.FeedAuthor
 import net.alienminds.ethnogram.service.feed.entities.FeedType
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.rememberRelativeTime
+import ru.iquack.linkpreview.compose.LinkPreviewState
+import ru.iquack.linkpreview.core.LinkPreview
+import ru.iquack.linkpreview.core.OpenGraphTag
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -35,7 +43,7 @@ import java.time.format.DateTimeFormatter
 fun FeedCard(
     modifier: Modifier = Modifier,
     feed: Feed,
-    author: FeedAuthor?,
+    author: Author?,
     isFavorite: Boolean? = null,
     onClick: () -> Unit,
     onChangeFavorite: ((Boolean) -> Unit)? = null
@@ -57,7 +65,7 @@ fun FeedCard(
             modifier = modifier
                 .clickable{ onClick() },
             feed = feed,
-            author = author
+            author = author,
         )
     }
 }
@@ -66,16 +74,22 @@ fun FeedCard(
 private fun DefaultFeedCard(
     modifier: Modifier = Modifier,
     feed: Feed,
-    author: FeedAuthor?
+    author: Author?,
 ) = Row(
     modifier = modifier
 ){
+    val previewState = LocalLinkPreviewStateHolder.current.getState(feed.webLink.orEmpty())
+    val linkPreview = (previewState as? LinkPreviewState.Success)?.preview
+    val imageUrl = when(feed.webLink.isNullOrEmpty()) {
+        true -> feed.imageUrl
+        false -> linkPreview?.openGraph?.image?: feed.imageUrl
+    }
     CoverImage(
         modifier = Modifier
             .padding(end = 16.dp)
             .height(96.dp)
             .aspectRatio(1f),
-        imageUrl = feed.imageUrl,
+        imageUrl = imageUrl,
     )
     Column{
         if (feed.type == FeedType.EVENT) {
@@ -96,7 +110,7 @@ private fun DefaultFeedCard(
             multiline = false
         )
 
-        FeedAuthor(
+        AuthorContent(
             modifier = Modifier.padding(top = 4.dp),
             author = author
         )
@@ -122,18 +136,22 @@ private fun DefaultFeedCard(
 private fun BigFeedCard(
     modifier: Modifier = Modifier,
     feed: Feed,
-    author: FeedAuthor?,
+    author: Author?,
     isFavorite: Boolean?,
     onChangeFavorite: ((Boolean) -> Unit)?
 ) = Column(
     modifier = modifier.fillMaxWidth()
 ){
+    val uriHandler = LocalUriHandler.current
     Box{
-        CoverImage(
+        LinkPreviewCover(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f),
-            imageUrl = feed.imageUrl
+                .aspectRatio(1f)
+                .clip(MaterialTheme.shapes.large),
+            linkPreviewUrl = feed.webLink,
+            fallbackImageUrl = feed.imageUrl,
+            onShowInfo = { feed.webLink?.let(uriHandler::openUri) }
         )
         feed.type?.let { type ->
             FeedTypeMark(
@@ -161,7 +179,7 @@ private fun BigFeedCard(
         description = feed.description,
         multiline = true
     )
-    FeedAuthor(
+    AuthorContent(
         modifier = Modifier.padding(top = 8.dp),
         author = author
     )
@@ -220,8 +238,6 @@ private fun PrimaryContent(
         }
     )
 }
-
-
 
 @Composable
 private fun RelativeTime(

@@ -1,9 +1,7 @@
 package net.alienminds.ethnogram
 
 import android.app.Application
-import android.content.Context
 import net.alienminds.ethnogram.service.serviceModule
-import net.alienminds.ethnogram.utils.AppContextWrapper
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 

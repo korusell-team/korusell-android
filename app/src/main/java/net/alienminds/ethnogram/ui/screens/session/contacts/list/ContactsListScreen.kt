@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,8 +40,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.model.rememberScreenModel
+import cafe.adriel.voyager.core.model.rememberNavigatorScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.mappers.localName
 import net.alienminds.ethnogram.service.data.entities.Category
@@ -84,8 +84,8 @@ object ContactsListScreen: NavBarScreen {
     @Composable
     override fun Content(){
 
-        val navigator = LocalNavigator.current
-        val vm = rememberScreenModel { ContactsListViewModel() }
+        val navigator = LocalNavigator.currentOrThrow
+        val vm = navigator.rememberNavigatorScreenModel { ContactsListViewModel() }
         val dialogCities = rememberAppDialogState()
 
         Column(
@@ -102,7 +102,7 @@ object ContactsListScreen: NavBarScreen {
                 searchMode = vm.searchMode,
                 onChangeSearchMode = vm::switchSearchMode,
                 onOpenCities = { dialogCities.show() },
-                onShowProfile = { navigator?.push(ProfileScreen()) }
+                onShowProfile = { navigator.push(ProfileScreen()) }
             )
 
             ContactsScreenHeader(
@@ -116,6 +116,7 @@ object ContactsListScreen: NavBarScreen {
                 onSelectCategory = vm::selectCategory,
                 onSwitchSearchMode = vm::switchSearchMode,
                 onChangeSearch = { vm.searchText = it },
+                onShowAllCategories = { navigator.push(SelectCategoryScreen) }
             )
 
             PrimaryContent(
@@ -132,9 +133,7 @@ object ContactsListScreen: NavBarScreen {
                 me = vm.me,
                 categories = vm.allCategories,
                 cities = vm.allCities,
-                isLoading = vm.loading,
                 onChangeFavorite = vm::changeFavorite,
-                onLoadMore = vm::loadMore
             )
         }
 
@@ -155,9 +154,7 @@ object ContactsListScreen: NavBarScreen {
         me: User?,
         categories: List<Category>,
         cities: List<City>,
-        isLoading: Boolean,
         onChangeFavorite: (String, Boolean) -> Unit,
-        onLoadMore: () -> Unit
     ){
 
         val navigator = LocalNavigator.current
@@ -165,21 +162,6 @@ object ContactsListScreen: NavBarScreen {
 
         LaunchedEffect(lazyState) {
             lazyListState = lazyState
-        }
-
-
-        val shouldLoadMore by remember {
-            derivedStateOf {
-                val totalItemsCount = lazyState.layoutInfo.totalItemsCount
-                val lastVisibleItemIndex = lazyState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                lastVisibleItemIndex >= (totalItemsCount) && !isLoading
-            }
-        }
-
-        LaunchedEffect(shouldLoadMore) {
-            if (shouldLoadMore){
-                onLoadMore()
-            }
         }
 
         LazyColumn(
