@@ -3,6 +3,7 @@ package net.alienminds.ethnogram.service.feed.entities
 import androidx.annotation.Keep
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.user.entities.User
 import java.time.Instant
 
@@ -30,7 +31,8 @@ data class Feed(
     val updatedAt: Instant? = null,
 ) {
 
-    internal constructor(doc: DocumentSnapshot) : this(
+    //TODO("Migrate to Field pattern, see User.kt for example")
+    internal constructor(doc: DocumentSnapshot): this(
         id = doc.id,
         title = doc.getString("title"),
         description = doc.getString("description"),
@@ -79,7 +81,6 @@ data class Feed(
                 }.orEmpty()
 
     }
-
 }
 
 enum class FeedType(
@@ -136,7 +137,6 @@ data class Author(
             name?.firstOrNull()?.let { append(it) }
             surname?.firstOrNull()?.let { append(it) }
         }
-
 }
 
 @Keep
@@ -145,6 +145,7 @@ data class FeedComment(
     val userId: String? = null,
     val userName: String? = null,
     val userAvatarUrl: String? = null,
+    val updatedAt: Instant? = null,
     val createdAt: Instant? = null,
 ) {
     internal constructor(map: Map<*, *>?) : this(
@@ -152,6 +153,7 @@ data class FeedComment(
         userId = map?.get("userId") as? String,
         userName = map?.get("userName") as? String,
         userAvatarUrl = map?.get("userAvatarUrl") as? String,
+        updatedAt = (map?.get("updatedAt") as? Timestamp)?.toInstant(),
         createdAt = (map?.get("createdAt") as? Timestamp)?.toInstant()
     )
 }

@@ -2,6 +2,7 @@ package net.alienminds.ethnogram.ui.screens.auth.phone
 
 import android.content.Context
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -73,7 +75,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             error = vm.errorMessage,
             loading = vm.loading,
             phone = vm.phone,
-            onPhoneChange = { vm.phone = it }
+            onPhoneChange = { vm.phone = it },
+            onSignInGuest = { vm.signInGuest(navigator) }
         )
 
         FooterContent(
@@ -94,7 +97,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         error: String?,
         loading: Boolean,
         phone: String,
-        onPhoneChange: (String) -> Unit
+        onPhoneChange: (String) -> Unit,
+        onSignInGuest: () -> Unit
     ) = Column(
         modifier = modifier
     ){
@@ -151,13 +155,26 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             ),
             singleLine = true,
         )
-
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = error.orEmpty(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
-        )
+        AnimatedVisibility(
+            visible = error.isNullOrEmpty().not()
+        ) {
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = error.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+        TextButton(
+            modifier = Modifier.align(Alignment.End),
+            onClick = onSignInGuest
+        ) {
+            Text(
+                text = stringResource(R.string.signin_as_guest),
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColor.lightBlue600
+            )
+        }
     }
 
     @Composable
@@ -218,8 +235,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
     )
 
     private enum class TermsLinks(
-        @StringRes val urlId: Int,
-        @StringRes val textId: Int
+        @param:StringRes val urlId: Int,
+        @param:StringRes val textId: Int
     ){
         OBJECTIONABLE_CONTENT(R.string.terms_objectionable_link, R.string.terms_objectionable_text),
         CONFIDENTIALITY(R.string.terms_confidentiality_link, R.string.terms_confidentiality_text)

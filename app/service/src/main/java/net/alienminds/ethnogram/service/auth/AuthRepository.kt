@@ -16,19 +16,24 @@ import net.alienminds.ethnogram.service.auth.PhoneVerificationCallback.PhoneVeri
 import net.alienminds.ethnogram.service.auth.entities.CurrentUser
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
 import net.alienminds.ethnogram.service.base.BaseRepository
+import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import net.alienminds.ethnogram.service.utils.clearAppCache
 import java.util.concurrent.TimeUnit
 
 class AuthRepository internal constructor(
     private val firestoreProvider: FirestoreProvider,
+    private val prefsRepository: PrefsRepository,
     private val context: Context
 ): BaseRepository() {
 
     private val auth = Firebase.auth
 
     val isSignIn
-        get() = auth.currentUser != null
+        get() = auth.currentUser != null || (auth.currentUser == null && prefsRepository.isAnonymousSignIn)
+
+    val isAnonymous
+        get() = isSignIn && prefsRepository.isAnonymousSignIn
 
     val currentUser
         get() = auth.currentUser?.let { CurrentUser(it) }
@@ -43,6 +48,7 @@ class AuthRepository internal constructor(
         phoneNumber: String,
         activity: Activity
     ) = apiQuery {
+        runCatching { logout() }
         val state = PhoneVerificationCallback()
         val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(phoneNumber)
@@ -66,6 +72,11 @@ class AuthRepository internal constructor(
         }
     }
 
+    suspend fun signInAnonymous() = apiQuery{
+        runCatching { logout() }
+        prefsRepository.isAnonymousSignIn = true
+    }
+
     suspend fun confirmPhone(
         verificationId: String,
         code: String
@@ -80,6 +91,7 @@ class AuthRepository internal constructor(
         Firebase.auth.signOut()
         firestoreProvider.clearFirestoreCache()
         context.clearAppCache()
+        prefsRepository.isAnonymousSignIn = false
         _logoutFlow.emit(Unit)
         Log.d(logTag, "Logout Success")
     }

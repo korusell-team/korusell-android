@@ -395,9 +395,11 @@ class UserRepository internal constructor(
         }
     
     private fun ProducerScope<*>.closeIfLogout(){
-        authRepository.logoutFlow.onEach { 
-            this.close(IllegalStateException("User logged out"))
-        }.launchIn(ioScope)
+        runCatching {
+            authRepository.logoutFlow.onEach {
+                this.close()
+            }.launchIn(ioScope)
+        }
     }
 
     internal suspend fun getMyId(

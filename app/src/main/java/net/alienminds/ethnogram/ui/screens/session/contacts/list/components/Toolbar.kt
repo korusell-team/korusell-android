@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +35,11 @@ fun ContactsListScreen.ContactsToolbar(
     avatarUrl: String?,
     initials: String,
     searchMode: Boolean,
+    isAnonymous: Boolean,
     onChangeSearchMode: (Boolean) -> Unit,
     onOpenCities: () -> Unit,
-    onShowProfile: () -> Unit
+    onShowProfile: () -> Unit,
+    onSignIn: () -> Unit
 ) = Row(
     modifier = modifier
         .fillMaxWidth()
@@ -83,13 +86,26 @@ fun ContactsListScreen.ContactsToolbar(
         fontWeight = FontWeight.SemiBold
     )
 
-    Avatar(
-        modifier = Modifier.size(34.dp),
-        model = avatarUrl,
-        initials = initials,
-        onClick = onShowProfile,
-        border = BorderStroke(1.dp, AppColor.gray900),
-        textStyle = MaterialTheme.typography.bodyMedium,
-        contentScale = ContentScale.Crop
-    )
+    if (isAnonymous){
+        TextButton(
+            onClick = onSignIn
+        ) {
+            Text(
+                text = "Войти",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColor.blue400,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    } else {
+        Avatar(
+            modifier = Modifier.size(34.dp),
+            model = avatarUrl,
+            initials = initials,
+            onClick = onShowProfile,
+            border = BorderStroke(1.dp, AppColor.gray900),
+            textStyle = MaterialTheme.typography.bodyMedium,
+            contentScale = ContentScale.Crop
+        )
+    }
 }

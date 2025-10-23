@@ -90,7 +90,6 @@ internal object FeedListScreen: NavBarScreen {
         }
         Toolbar(
             modifier = Modifier.statusBarsPadding(),
-            onClickMyPost = {  }
         )
 
         TypeFilter(
@@ -172,7 +171,6 @@ internal object FeedListScreen: NavBarScreen {
     @Composable
     private fun Toolbar(
         modifier: Modifier = Modifier,
-        onClickMyPost: () -> Unit
     ) = Box(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -184,28 +182,28 @@ internal object FeedListScreen: NavBarScreen {
             color = AppColor.gray900,
             fontWeight = FontWeight.SemiBold
         )
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 8.dp)
-                .padding(vertical = 4.dp)
-                .clip(CircleShape)
-                .background(shimmerBrush())
-                .clickable(
-                    enabled = false
-                ) { onClickMyPost() }
-                .padding(
-                    vertical = 4.dp,
-                    horizontal = 12.dp
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "BETA",//stringResource(R.string.my_posts),
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColor.gray100
-            )
-        }
+//        Box(
+//            modifier = Modifier
+//                .align(Alignment.CenterEnd)
+//                .padding(end = 8.dp)
+//                .padding(vertical = 4.dp)
+//                .clip(CircleShape)
+//                .background(shimmerBrush())
+//                .clickable(
+//                    enabled = false
+//                ) { onClickMyPost() }
+//                .padding(
+//                    vertical = 4.dp,
+//                    horizontal = 12.dp
+//                ),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            Text(
+//                text = "BETA",//stringResource(R.string.my_posts),
+//                style = MaterialTheme.typography.bodySmall,
+//                color = AppColor.gray100
+//            )
+//        }
     }
 
     @Composable

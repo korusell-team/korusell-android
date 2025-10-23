@@ -22,12 +22,14 @@ internal fun LikeButton(
     modifier: Modifier = Modifier,
     count: Int?,
     isFavorite: Boolean,
+    enabled: Boolean = true,
     onChange: (Boolean) -> Unit
 ) = AnimatedContent(
     modifier = modifier
         .clickable(
             interactionSource = null,
             indication = null,
+            enabled = enabled,
             onClick = { onChange(isFavorite.not()) }
         ),
     targetState = count to isFavorite

@@ -23,12 +23,40 @@ val serviceModule = module{
     single { Firebase.storage }
 
     //Repositories
-    single { PrefsRepository(get()) }
-    single { AuthRepository(get(), get()) }
-    single { DataRepository(get()) }
-    single { FeedRepository(get(), get(), get(), get()) }
-    single { UserRepository(get(), get(), get(), get()) }
-    single { FeedbackRepository(get(), get()) }
+    single { PrefsRepository(
+        context = get()
+    ) }
+
+    single { AuthRepository(
+        firestoreProvider = get(),
+        prefsRepository = get(),
+        context = get()
+    ) }
+
+    single { DataRepository(
+        firestoreProvider = get(),
+        authRepository = get(),
+        ioScope = get()
+    ) }
+
+    single { FeedRepository(
+        userRepo = get(),
+        authRepo = get(),
+        ioScope = get(),
+        firestoreProvider = get()
+    ) }
+
+    single { UserRepository(
+        authRepository = get(),
+        ioScope = get(),
+        storage = get(),
+        firestoreProvider = get()
+    ) }
+
+    single { FeedbackRepository(
+        firestoreProvider = get(),
+        userRepository = get()
+    ) }
 
 
 }

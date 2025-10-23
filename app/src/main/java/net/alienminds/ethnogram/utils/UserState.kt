@@ -19,6 +19,7 @@ class UserStateProvider(
     suspend fun getUserState() = when{
         prefsRepository.isFirstLaunch -> UserState.FirstLaunch
         authRepository.isSignIn.not() -> UserState.Unauthorized
+        authRepository.isAnonymous -> UserState.Authorized
         isProfileComplete().not() -> UserState.ProfileNotCompleted
         else -> UserState.Authorized
     }

@@ -46,12 +46,16 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import net.alienminds.ethnogram.R
+import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.feed.entities.EventDetails
+import net.alienminds.ethnogram.service.feed.entities.FeedComment
 import net.alienminds.ethnogram.service.feed.entities.FeedType
 import net.alienminds.ethnogram.service.feed.entities.PromoDetail
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
+import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
+import net.alienminds.ethnogram.ui.screens.session.feed.all_comments.AllCommentsScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.components.AuthorContent
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedTypeMark
 import net.alienminds.ethnogram.ui.screens.session.feed.components.LinkPreviewCover
@@ -163,31 +167,101 @@ internal class FeedDetailsScreen(
                 )
             }
 
-            AuthorContent(
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .padding(horizontal = 16.dp)
-                    .clickable{
-                        vm.feed?.authorId?.let {
-                            navigator?.push(ProfileScreen(it))
-                        }
-                    },
-                author = vm.author
-            )
             Row(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ){
+                AuthorContent(
+                    modifier = Modifier
+                        .weight(1f, false)
+                        .clickable {
+                            vm.feed?.authorId?.let {
+                                navigator?.push(ProfileScreen(it))
+                            }
+                        },
+                    author = vm.author
+                )
                 LikeButton(
-                    count = vm.feed?.likeList?.size?: 0,
+                    count = vm.feed?.likeList?.size ?: 0,
                     isFavorite = vm.isFavorite,
                     onChange = { vm.changeFavoriteFeed(it) }
+                )
+            }
+            AnimatedVisibility(vm.loading.not()) {
+                CommentsBlock(
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    commentsCount = vm.feed?.comments?.size ?: 0,
+                    lastComment = vm.lastComment,
+                    author = vm.lastCommentAuthor,
+                    onShowComments = {
+                        navigator?.push(AllCommentsScreen(feedId))
+                    }
                 )
             }
             Spacer(Modifier
                 .navigationBarsPadding()
                 .height(48.dp))
+        }
+    }
+
+    @Composable
+    private fun CommentsBlock(
+        modifier: Modifier = Modifier,
+        commentsCount: Int,
+        lastComment: FeedComment?,
+        author: Author?,
+        onShowComments: () -> Unit
+    ) = Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(AppColor.gray200)
+            .clickable{ onShowComments() }
+            .padding(16.dp)
+    ){
+        Text(
+            buildAnnotatedString {
+                append(stringResource(R.string.comments))
+                withStyle(SpanStyle(color = AppColor.gray500)) {
+                    append("$commentsCount")
+                }
+            },
+            style = MaterialTheme.typography.titleSmall,
+            color = AppColor.gray800
+        )
+        if (lastComment == null) {
+            Text(
+                modifier = Modifier.padding(top = 4.dp),
+                text = "Добавить...",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColor.gray500,
+            )
+        } else {
+            Row(
+                modifier = Modifier,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Avatar(
+                    modifier = Modifier.size(24.dp),
+                    model = author?.avatarUrl ?: lastComment?.userAvatarUrl,
+                    initials = author?.initials.orEmpty(),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = lastComment?.text.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColor.gray700,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2
+                )
+            }
         }
     }
 

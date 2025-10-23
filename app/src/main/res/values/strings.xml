@@ -14,10 +14,10 @@
     <string name="auth_phone_description">Войдите или зарегистрируйтесь указав номер телефона</string>
     <string name="telegram_placeholder">имя пользователя</string>
     <string name="phone_placeholder">+XXX XX XX XX XX</string>
-    <string name="terms_objectionable_text">"Политикой нежелательного контента "</string>
-    <string name="terms_objectionable_link">"https://wide-arthropod-bad.notion.site/00bc2c43d10449a68463233a80007ee6"</string>
+    <string name="terms_objectionable_text">"Политикой запрещенного контента "</string>
+    <string name="terms_objectionable_link">https://ethnogram.alienminds.net/prohibited-content.html</string>
     <string name="terms_confidentiality_text">Политикой конфеденциальности</string>
-    <string name="terms_confidentiality_link">https://wide-arthropod-bad.notion.site/4d3f3c37114243bcb9bd97ee1646bc11</string>
+    <string name="terms_confidentiality_link">https://ethnogram.alienminds.net/privacy-policy.html</string>
     <string name="auth_terms_1">"Авторизуясь, Вы соглашаетесь с "</string>
     <string name="auth_terms_2">"и с "</string>
     <string name="auth_otp_description">Введите шестизначный код полученный в SMS</string>
@@ -117,6 +117,11 @@
     <string name="back">Назад</string>
     <string name="please_wait_load_feedback">Пожалуйста, дождитесь окончания отправки отзыва</string>
     <string name="edit_feedback">Изменить отзыв</string>
+    <string name="signin_as_guest">Войти как гость</string>
+    <string name="top_users">🏆 ТОП 20</string>
+    <string name="new_users">👋 Новые на платформе</string>
+    <string name="comments">"Коментарии "</string>
+    <string name="your_comment">Ваш комментарий...</string>
 
 
 </resources>

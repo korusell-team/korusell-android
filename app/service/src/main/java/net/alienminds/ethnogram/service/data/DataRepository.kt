@@ -1,16 +1,21 @@
 package net.alienminds.ethnogram.service.data
 
 import com.google.firebase.firestore.Source
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.data.entities.Category
 import net.alienminds.ethnogram.service.data.entities.City
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 
 class DataRepository internal constructor(
-    private val firestoreProvider: FirestoreProvider
+    private val firestoreProvider: FirestoreProvider,
+    authRepository: AuthRepository,
+    ioScope: CoroutineScope
 ): BaseRepository() {
 
     private val categoriesCollection
@@ -21,6 +26,15 @@ class DataRepository internal constructor(
 
     private var isCategoriesSync = false
     private var isCitiesSync = false
+
+    init {
+        ioScope.launch {
+            authRepository.logoutFlow.collect {
+                isCategoriesSync = false
+                isCitiesSync = false
+            }
+        }
+    }
 
     fun getCategoriesFlow(): Flow<List<Category>> = flow{
         runCatching {

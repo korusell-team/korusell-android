@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.navigator.Navigator
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
+import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.ui.screens.auth.otp.AuthOTPScreen
 import net.alienminds.ethnogram.utils.AppScreenModel
@@ -18,6 +19,7 @@ import org.koin.core.component.inject
 class AuthPhoneViewModel: AppScreenModel() {
 
     private val authRepo by inject<AuthRepository>()
+    private val prefsRepo by inject<PrefsRepository>()
     private val userStateProvider by inject<UserStateProvider>()
 
     var phone by mutableStateOf("")
@@ -40,6 +42,17 @@ class AuthPhoneViewModel: AppScreenModel() {
                 is SignInByPhoneResult.NeedOTP -> navigator.push(AuthOTPScreen(it.verificationId))
             } }
 
+        }
+    }
+
+    fun signInGuest(
+        navigator: Navigator
+    ) = launchWithLoading {
+        authRepo.signInAnonymous().onFailure {
+            error = it
+        }.onSuccess {
+            val userState = userStateProvider.getUserState()
+            navigator.navigateByUserState(userState)
         }
     }
 }

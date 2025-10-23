@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.onEach
+import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.feed.FeedRepository
 import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.feed.entities.Feed
@@ -15,6 +16,7 @@ import org.koin.core.component.inject
 
 internal class FeedListModel: AppScreenModel() {
 
+    private val authRepo by inject<AuthRepository>()
     private val userRepo by inject<UserRepository>()
     private val feedRepo by inject<FeedRepository>()
 
@@ -37,8 +39,13 @@ internal class FeedListModel: AppScreenModel() {
     fun changeFavorite(
         feedId: String,
         isFavorite: Boolean
-    ) = launchWithLoading{
-        feedRepo.favoriteFeed(feedId, isFavorite)
+    ){
+        if (authRepo.isAnonymous){
+            return
+        }
+        launchWithLoading{
+            feedRepo.favoriteFeed(feedId, isFavorite)
+        }
     }
 
     private suspend fun List<Feed>.fetchAuthors() = mapNotNull { it.authorId }

@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.service.feed
 
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenSource
 import com.google.firebase.firestore.MetadataChanges
@@ -13,13 +14,16 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.tasks.await
+import net.alienminds.ethnogram.service.BuildConfig
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
 import net.alienminds.ethnogram.service.feed.entities.Feed
+import net.alienminds.ethnogram.service.feed.entities.FeedComment
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import net.alienminds.ethnogram.service.utils.addCacheListener
 import java.time.Instant
+import java.util.UUID
 
 class FeedRepository internal constructor(
     private val userRepo: UserRepository,
@@ -122,6 +126,32 @@ class FeedRepository internal constructor(
             true -> addToArray(feedId, "likelist", myId)
             false -> removeFromArray(feedId, "likelist", myId)
         }
+    }
+
+    suspend fun addComment(
+        feedId: String,
+        comment: String
+    ) = apiQuery {
+        val me = userRepo.getMe().getOrNull()
+            ?: throw IllegalStateException("Failed to get current user")
+        val userId = me.uid?: throw IllegalStateException("Current user has no ID")
+        val commentMap = mapOf(
+            "userId" to userId,
+            "userName" to me.fullName,
+            "text" to comment,
+            "createdAt" to FieldValue.serverTimestamp(),
+            "userAvatarUrl" to me.image.firstOrNull(),
+            "updatedAt" to FieldValue.serverTimestamp(),
+        )
+        val docRef = collection.document(feedId)
+        val snapshot = docRef.get(Source.SERVER).await()
+        val rawComments = snapshot.get("comments") as? HashMap<*, *>
+        val commentsMap = rawComments?.mapKeys { it.key.toString() }?.toMutableMap() ?: mutableMapOf()
+        val key = UUID.randomUUID().toString()
+        commentsMap[key] = commentMap
+        val task = docRef.update("comments", commentsMap)
+        task.await()
+        task.isSuccessful
     }
 
     private suspend fun <T>addToArray(

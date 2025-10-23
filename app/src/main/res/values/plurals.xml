@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="found_users">
+        <item quantity="one">🔎 Найден %d пользователь</item>
+        <item quantity="few">🔎 Найдено %d пользователя</item>
+        <item quantity="many">🔎 Найдено %d пользователей</item>
+        <item quantity="other">🔎 Найдено %d пользователей</item>
+    </plurals>
+</resources>
+

@@ -7,7 +7,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,11 +52,15 @@ import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.ChipPickerDialog
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.rememberAppDialogState
+import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.ui.screens.session.NavBarScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.components.ContactsScreenHeader
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.components.ContactsToolbar
+import net.alienminds.ethnogram.ui.screens.session.contacts.list.entities.UserGroup
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
+import net.alienminds.ethnogram.utils.UserState
+import java.time.Instant
 
 object ContactsListScreen: NavBarScreen {
 
@@ -100,9 +104,11 @@ object ContactsListScreen: NavBarScreen {
                 avatarUrl = vm.me?.smallImage?: vm.me?.image?.firstOrNull(),
                 initials = vm.me?.initials.orEmpty(),
                 searchMode = vm.searchMode,
+                isAnonymous = vm.isAnonymous,
                 onChangeSearchMode = vm::switchSearchMode,
                 onOpenCities = { dialogCities.show() },
-                onShowProfile = { navigator.push(ProfileScreen()) }
+                onShowProfile = { navigator.push(ProfileScreen()) },
+                onSignIn = { navigator.navigateByUserState(UserState.Unauthorized) }
             )
 
             ContactsScreenHeader(
@@ -129,10 +135,11 @@ object ContactsListScreen: NavBarScreen {
                         )
                     )
                     .fillMaxSize(),
-                users = vm.users,
+                userGroups = vm.userGroups,
                 me = vm.me,
                 categories = vm.allCategories,
                 cities = vm.allCities,
+                isAnonymous = vm.isAnonymous,
                 onChangeFavorite = vm::changeFavorite,
             )
         }
@@ -150,10 +157,11 @@ object ContactsListScreen: NavBarScreen {
     @Composable
     private fun PrimaryContent(
         modifier: Modifier = Modifier,
-        users: List<User>,
+        userGroups: List<UserGroup>,
         me: User?,
         categories: List<Category>,
         cities: List<City>,
+        isAnonymous: Boolean,
         onChangeFavorite: (String, Boolean) -> Unit,
     ){
 
@@ -173,30 +181,53 @@ object ContactsListScreen: NavBarScreen {
                         topEnd = 100f
                     )
                 ),
-            state = lazyState,
-            contentPadding = PaddingValues(top = 16.dp)
+            state = lazyState
         ){
-            items(
-                items = users,
-                key = { it.uid?: it.hashCode() }
-            ){ user ->
-                UserItem(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .animateItem(),
-                    user = user,
-                    isFavorite = user.likes.any { me?.uid?.equals(it) == true },
-                    categories = categories,
-                    cities = cities,
-                    onChangeFavorite = { isFavorite ->
-                        user.uid?.let { userId ->
-                            onChangeFavorite(userId, isFavorite)
-                        }
-                    },
-                    onClick = { navigator?.push(ProfileScreen(user.uid)) }
-                )
+            userGroups.forEach { group ->
+
+                stickyHeader {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(AppColor.gray100)
+                            .padding(bottom = 8.dp, top = 16.dp)
+                            .padding(horizontal = 16.dp)
+                            .animateItem(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ){
+                        Text(
+                            text = group.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = AppColor.blueGray600,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                items(
+                    items = group.users
+                ){ user ->
+                    UserItem(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .animateItem(),
+                        user = user,
+                        isFavorite = user.likes.any { me?.uid == it },
+                        categories = categories,
+                        cities = cities,
+                        onChangeFavorite = { isFavorite ->
+                            user.uid?.let { userId ->
+                                onChangeFavorite(userId, isFavorite)
+                            }
+                        },
+                        clickable = isAnonymous.not(),
+                        onClick = { if (isAnonymous.not()) navigator?.push(ProfileScreen(user.uid)) }
+                    )
+                }
             }
-            if (users.isEmpty()) {
+
+
+            if (userGroups.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -223,6 +254,7 @@ object ContactsListScreen: NavBarScreen {
         isFavorite: Boolean,
         categories: List<Category>,
         cities: List<City>,
+        clickable: Boolean,
         onChangeFavorite: (Boolean) -> Unit,
         onClick: () -> Unit
     ){
@@ -233,6 +265,7 @@ object ContactsListScreen: NavBarScreen {
                 .clickable(
                     interactionSource = null,
                     indication = null,
+                    enabled = clickable,
                     onClick = onClick
                 )
         ){
@@ -266,8 +299,8 @@ object ContactsListScreen: NavBarScreen {
                     ){
                         Text(
                             text = remember(user.name, user.surname){ buildString {
-                                user.name?.let { append("$it ") }
-                                user.surname?.let { append(it) }
+                                user.surname?.let { append("$it ") }
+                                user.name?.let { append(it) }
                             } },
                             style = MaterialTheme.typography.titleMedium,
                             color = AppColor.blueGray900
@@ -293,6 +326,7 @@ object ContactsListScreen: NavBarScreen {
                         .padding(top = 4.dp),
                     count = user.likes.size,
                     isFavorite = isFavorite,
+                    enabled = clickable,
                     onChange = onChangeFavorite
                 )
 
