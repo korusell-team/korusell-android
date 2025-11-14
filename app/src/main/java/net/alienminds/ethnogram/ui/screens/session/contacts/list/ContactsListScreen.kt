@@ -1,6 +1,10 @@
 package net.alienminds.ethnogram.ui.screens.session.contacts.list
 
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Typeface
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -8,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,20 +30,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberNavigatorScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -60,7 +71,6 @@ import net.alienminds.ethnogram.ui.screens.session.contacts.list.entities.UserGr
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.UserState
-import java.time.Instant
 
 object ContactsListScreen: NavBarScreen {
 
@@ -101,14 +111,9 @@ object ContactsListScreen: NavBarScreen {
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp),
-                avatarUrl = vm.me?.smallImage?: vm.me?.image?.firstOrNull(),
-                initials = vm.me?.initials.orEmpty(),
                 searchMode = vm.searchMode,
-                isAnonymous = vm.isAnonymous,
                 onChangeSearchMode = vm::switchSearchMode,
                 onOpenCities = { dialogCities.show() },
-                onShowProfile = { navigator.push(ProfileScreen()) },
-                onSignIn = { navigator.navigateByUserState(UserState.Unauthorized) }
             )
 
             ContactsScreenHeader(
@@ -184,25 +189,28 @@ object ContactsListScreen: NavBarScreen {
             state = lazyState
         ){
             userGroups.forEach { group ->
-
-                stickyHeader {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(AppColor.gray100)
-                            .padding(bottom = 8.dp, top = 16.dp)
-                            .padding(horizontal = 16.dp)
-                            .animateItem(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ){
-                        Text(
-                            text = group.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = AppColor.blueGray600,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                group.title?.let { title ->
+                    stickyHeader {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(AppColor.gray100)
+                                .padding(bottom = 8.dp, top = 16.dp)
+                                .padding(horizontal = 16.dp)
+                                .animateItem(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = AppColor.blueGray600,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
+                }?: run {
+                    item { Spacer(Modifier.size(32.dp)) }
                 }
                 items(
                     items = group.users
@@ -213,6 +221,7 @@ object ContactsListScreen: NavBarScreen {
                             .animateItem(),
                         user = user,
                         isFavorite = user.likes.any { me?.uid == it },
+                        isSponsored = group.groupType == UserGroup.Type.SPONSORED,
                         categories = categories,
                         cities = cities,
                         onChangeFavorite = { isFavorite ->
@@ -252,6 +261,7 @@ object ContactsListScreen: NavBarScreen {
         modifier: Modifier = Modifier,
         user: User,
         isFavorite: Boolean,
+        isSponsored: Boolean,
         categories: List<Category>,
         cities: List<City>,
         clickable: Boolean,
@@ -285,15 +295,24 @@ object ContactsListScreen: NavBarScreen {
                 modifier = Modifier.fillMaxWidth()
             ){
                 Row {
-                    Avatar(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .size(52.dp),
-                        model = user.image.firstOrNull(),
-                        initials = user.initials,
-                        contentScale = ContentScale.Crop,
-                        border = BorderStroke(1.dp, AppColor.blueGray900)
-                    )
+                    Box(
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Avatar(
+                            modifier = Modifier.size(52.dp),
+                            model = user.image.firstOrNull(),
+                            initials = user.initials,
+                            contentScale = ContentScale.Crop,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        )
+                        if (isSponsored){
+                            CircularTextBadge(
+                                text = "\uD83D\uDE80В Топе",
+                                textAngleDeg = 135f,
+                            )
+                        }
+                    }
                     Column(
                         modifier = Modifier.padding(start = 16.dp, end = 8.dp)
                     ){
@@ -359,6 +378,49 @@ object ContactsListScreen: NavBarScreen {
                 }
             }
             HorizontalDivider(Modifier.padding(start = 80.dp, bottom = 8.dp))
+        }
+    }
+
+    @Composable
+    private fun CircularTextBadge(
+        modifier: Modifier = Modifier,
+        text: String,
+        radiusDp: Dp = 32.dp,
+        strokeWidthDp: Dp = 8.dp,
+        textAngleDeg: Float = 0f,
+        tapeColor: Color = AppColor.yellow400,
+        textColor: Color = AppColor.blueGray600
+    ) {
+        val radiusPx = with(LocalDensity.current) { radiusDp.toPx() }
+        val strokeWidthPx = with(LocalDensity.current) { strokeWidthDp.toPx() }
+
+        Canvas(modifier = modifier.size(radiusDp * 2)) {
+            drawCircle(
+                color = tapeColor,
+                radius = radiusPx,
+                style = Stroke(width = strokeWidthPx)
+            )
+
+            val textRadius = radiusPx - strokeWidthPx / 2f
+
+            val path = Path().apply {
+                addCircle(center.x, center.y, textRadius, Path.Direction.CW)
+            }
+
+            drawContext.canvas.nativeCanvas.apply {
+                val textPaint = Paint().apply {
+                    color = textColor.toArgb()
+                    textSize = strokeWidthDp.toPx()*0.8f
+                    textAlign = Paint.Align.CENTER
+                    typeface = Typeface.DEFAULT_BOLD
+                }
+
+                val circumference = (2 * Math.PI * textRadius).toFloat()
+                val hOffset = (circumference * (textAngleDeg / 360f))
+                val vOffset = -textPaint.descent()
+
+                drawTextOnPath(text, path, hOffset, vOffset, textPaint)
+            }
         }
     }
 

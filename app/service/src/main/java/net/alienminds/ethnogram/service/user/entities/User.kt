@@ -27,6 +27,7 @@ data class User(
     val cities: List<Long> = emptyList(),
     val blockedBy: List<String> = emptyList(),
     val reports: List<String> = emptyList(),
+    val sponsoredExpDate: Instant? = null,
     val created: Instant? = null,
     val updated: Instant? = null,
     val avgRating: Double = 0.0
@@ -53,6 +54,7 @@ data class User(
         cities = doc.getValue(Field.CITIES),
         blockedBy = doc.getValue(Field.BLOCKED),
         reports = doc.getValue(Field.REPORTS),
+        sponsoredExpDate = doc.getInstant(Field.SPONSORED_EXP_DATE),
         created = doc.getInstant(Field.CREATED),
         updated = doc.getInstant(Field.UPDATED),
         social = UserSocial(doc),
@@ -95,6 +97,7 @@ data class User(
 
         //Not editable fields
         internal val PHONE = Field<String?>("phone", null)
+        internal val SPONSORED_EXP_DATE = Field<Instant?>("sponsoredExpDate", null)
         internal val CREATED = Field<Instant?>("created", null)
         internal val UPDATED = Field<Instant?>("updated", null)
     }

@@ -1,6 +1,7 @@
 package net.alienminds.ethnogram.service.user
 
 import android.net.Uri
+import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenSource
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.base.BaseRepository
@@ -26,6 +28,7 @@ import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import java.util.UUID
+import kotlin.collections.associate
 
 class UserRepository internal constructor(
     private val authRepository: AuthRepository,
@@ -43,11 +46,36 @@ class UserRepository internal constructor(
     private val syncedUsers = mutableSetOf<String>() // list of user uids
     
     init {
+        activateUser()
         authRepository.logoutFlow.onEach { 
             isSyncMe = false
             isSyncPublic = false
             syncedUsers.clear()
         }.launchIn(ioScope)
+    }
+
+    private fun activateUser() = ioScope.launch{
+        apiQuery {
+            val me = getMe().getOrNull()
+            val meId = getMyId(me)
+            val isNotCreated = me?.phone.isNullOrEmpty() || me.created == null
+
+            val map = mutableMapOf<String, Any>()
+            map[User.Field.UID.key] = meId
+            map[User.Field.UPDATED.key] = FieldValue.serverTimestamp()
+            if (isNotCreated){
+                map[User.Field.PHONE.key] = authRepository.currentUser?.phoneNumber?: throw IllegalStateException("User is not signed in")
+                map[User.Field.CREATED.key] = FieldValue.serverTimestamp()
+            }
+
+            val task = collection
+                .document(meId)
+                .set(map, SetOptions.merge())
+            task.await()
+            task.isSuccessful
+        }.onFailure {
+            it.printStackTrace()
+        }
     }
 
 
@@ -91,9 +119,11 @@ class UserRepository internal constructor(
                             close(error)
                             return@addSnapshotListener
                         }
-                        val updatedUser = snapshot?.let(::User)
-                        if (updatedUser != null) {
-                            trySend(updatedUser).isSuccess
+                        runCatching {
+                            val updatedUser = snapshot?.let(::User)
+                            if (updatedUser != null) {
+                                trySend(updatedUser).isSuccess
+                            }
                         }
                     }
             }.getOrNull()
@@ -319,6 +349,15 @@ class UserRepository internal constructor(
             }
             reference.downloadUrl
         }.await()
+    }
+
+    suspend fun deleteMyAccount() = apiQuery{
+        val meId = getMyId()
+        val task = collection
+            .document(meId)
+            .delete()
+        task.await()
+        task.isSuccessful
     }
 
     suspend fun removeImage(

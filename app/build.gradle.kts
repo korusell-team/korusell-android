@@ -8,8 +8,8 @@ plugins {
 
 val versionMajor = 1
 val versionMinor = 0 //max 9
-val versionPatch = 0 //max 9
-val versionBuild = 1 //max 99
+val versionPatch = 1 //max 9
+val versionBuild = 0 //max 99
 
 android {
     signingConfigs {
@@ -61,6 +61,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -95,7 +96,6 @@ dependencies {
 
     //Chrome Tabs
     implementation(libs.androidx.browser)
-    implementation(project(":app:service"))
 
     //Koin DI
     implementation(libs.koin.core)
@@ -111,8 +111,13 @@ dependencies {
 
     implementation(libs.iquack.link.preview)
 
+    implementation(project(":app:service"))
+
+    //Firebase
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.firebase.analytics)
+
+    //Testing
     debugImplementation(libs.androidx.compose.ui.tooling)
 
 }

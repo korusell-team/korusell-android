@@ -26,13 +26,13 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
 
     private val userStateProvider by inject<UserStateProvider>()
+    private val updateManager by inject<InAppUpdateManager>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashscreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         var suitableScreen by mutableStateOf<Screen?>(null)
         splashscreen.setKeepOnScreenCondition { suitableScreen == null }
-        val updateManager = InAppUpdateManager(this)
         setupEdgeToEdge()
         setContent {
             LaunchedEffect(Unit) {

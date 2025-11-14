@@ -267,7 +267,7 @@ class EditProfileScreen: PageTransitionScreen {
             onAddPhoto = { photoPicker.launch() },
             onRemovePhoto = { vm.removeImage(vm.images.getOrNull(pagerState.currentPage)) },
             onSavePressed = { when(vm.canSave){
-                true -> vm.saveUser()
+                true -> vm.saveUser(navigator)
                 false -> alertPublic.show()
             } },
             onBackPressed = {

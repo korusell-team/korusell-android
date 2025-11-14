@@ -39,6 +39,25 @@ class InAppUpdateManager internal constructor(
         Log.e(LOG_TAG, "Failed get update app", it)
     }
 
+    suspend fun startImmediateUpdate(appUpdate: AppUpdate, activity: Activity){
+        runCatching {
+            _status.tryEmit(UpdateStatus.Progress)
+            val updateType = AppUpdateType.IMMEDIATE
+            if (appUpdate.appUpdateInfo.isUpdateTypeAllowed(updateType)) {
+                val options = AppUpdateOptions.newBuilder(updateType).build()
+                val resultCode = appUpdateManager.startUpdateFlow(appUpdate.appUpdateInfo, activity, options).await()
+                if (resultCode != RESULT_OK){
+                    error("Failed update app, code $resultCode")
+                }
+            } else {
+                error("Update is not allowed, type: $updateType")
+            }
+        }.onFailure {
+            _status.tryEmit(UpdateStatus.NotStarted)
+            Log.e(LOG_TAG, "Failed update app", it)
+        }
+    }
+
 
     suspend fun startUpdate(appUpdate: AppUpdate, activity: Activity){
         runCatching {

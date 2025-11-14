@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
+import cafe.adriel.voyager.navigator.Navigator
 import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.mappers.field
 import net.alienminds.ethnogram.service.auth.AuthRepository
@@ -171,7 +172,7 @@ class EditProfileViewModel: AppScreenModel() {
         }
     }
 
-    fun saveUser() = launchWithLoading{
+    fun saveUser(navigator: Navigator?) = launchWithLoading{
         val fields = getEditedFields().run {
             when(addedImages.isNotEmpty() || removedImages.isNotEmpty()){
                 true -> plus(InputField(User.Field.IMAGE, applyImages()))
@@ -180,7 +181,9 @@ class EditProfileViewModel: AppScreenModel() {
         }
         userRepo.updateMe(
             values = fields
-        )
+        ).onSuccess {
+            navigator?.pop()
+        }
     }
 
 

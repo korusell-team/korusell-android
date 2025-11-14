@@ -202,6 +202,7 @@ object AppColor{//TODO: remove unused
     val deepOrange900 = Color(0xFFBF360C)
 
     //Brown
+    val brown10 = Color(0xFFF7F4F2)
     val brown50 = Color(0xFFEFEBE9)
     val brown100 = Color(0xFFD7CCC8)
     val brown200 = Color(0xFFBCAAA4)

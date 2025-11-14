@@ -1,52 +1,52 @@
 package net.alienminds.ethnogram.ui.screens.session.feed.list
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
+import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.R
-import net.alienminds.ethnogram.mappers.displayName
-import net.alienminds.ethnogram.mappers.emoji
+import net.alienminds.ethnogram.service.feed.entities.Feed
 import net.alienminds.ethnogram.service.feed.entities.FeedType
-import net.alienminds.ethnogram.ui.extentions.shimmerBrush
 import net.alienminds.ethnogram.ui.screens.session.NavBarScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedCard
 import net.alienminds.ethnogram.ui.screens.session.feed.details.FeedDetailsScreen
@@ -75,167 +75,169 @@ internal object FeedListScreen: NavBarScreen {
         lazyListState?.animateScrollToItem(0)
     }
 
+    enum class Tabs(
+        @param:StringRes val titleId: Int
+    ){
+        MAIN(R.string.main),
+        EVENTS(R.string.events)
+    }
+
+    data class EventGroup(
+        val title: String,
+        val feeds: List<Feed>
+    )
+
 
     @Composable
     override fun Content() = Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColor.brown50)
+            .background(MaterialTheme.colorScheme.background)
     ){
         val navigator = LocalNavigator.current
         val vm = rememberScreenModel { FeedListModel() }
         val lazyState = rememberLazyListState()
+
+        val scope = rememberCoroutineScope()
+        val density = LocalDensity.current
+        val statusBarSize = with(density) {
+            WindowInsets.statusBars.getTop(this).toDp()
+        }
+
         LaunchedEffect(lazyListState) {
             lazyListState = lazyState
         }
-        Toolbar(
-            modifier = Modifier.statusBarsPadding(),
-        )
 
-        TypeFilter(
-            modifier = Modifier,
-            current = vm.type,
-            onChange = { vm.type = it }
-        )
+        fun changeTab(tab: Tabs){
+            vm.currentTab = tab
+            scope.launch {
+                lazyState.animateScrollToItem(0)
+            }
+        }
+
+        Spacer(Modifier
+            .fillMaxWidth()
+            .height(statusBarSize)
+            .background(AppColor.brown50))
 
         LazyColumn(
-            modifier = Modifier
-                .shadow(
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(
-                        topStart = 100f,
-                        topEnd = 100f
-                    )
-                )
-                .background(
-                    color = AppColor.gray100,
-                    shape = RoundedCornerShape(
-                        topStart = 100f,
-                        topEnd = 100f
-                    )
-                )
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             state = lazyState
         ){
-            items(
-                items = vm.feeds,
-                key = { it.id?: it.hashCode() }
-            ){ feed ->
-                FeedCard(
+            item {
+                Box(
                     modifier = Modifier
-                        .animateItem()
-                        .padding(16.dp),
-                    feed = feed,
-                    author = feed.authorId?.let { vm.authors[it] },
-                    isFavorite = feed.likeList?.any { it == vm.myId } == true,
-                    onClick = { feed.id?.let {
-                        navigator?.push(FeedDetailsScreen(it))
-                    } },
-                    onChangeFavorite = { feed.id?.let { fid ->
-                        vm.changeFavorite(fid, it)
-                    } }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = AppColor.gray400
-                )
+                        .fillMaxWidth()
+                        .background(AppColor.brown50)
+                ){
+                    Text(
+                        modifier = Modifier
+                            .padding(
+                                vertical = 8.dp,
+                                horizontal = 16.dp
+                            ),
+                        text = title(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AppColor.gray900,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            stickyHeader {
+                SecondaryTabRow(
+                    selectedTabIndex = vm.currentTab.ordinal,
+                    containerColor = AppColor.brown50,
+                    indicator = {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(
+                                selectedTabIndex = vm.currentTab.ordinal,
+                                matchContentSize = false
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                ) {
+                    Tabs.entries.forEach { tab ->
+                        Tab(
+                            modifier = Modifier.heightIn(48.dp),
+                            selected = vm.currentTab == tab,
+                            onClick = { changeTab(tab) }
+                        ) {
+                            Text(
+                                text = stringResource(tab.titleId),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            item{
+                Spacer(Modifier
+                    .fillMaxWidth()
+                    .height(32.dp))
+            }
+
+            if(vm.currentTab == Tabs.MAIN){
+                items(
+                    items = vm.mainFeeds,
+                    key = { it.id?: it.hashCode() }
+                ){ feed ->
+                    FeedCard(
+                        modifier = Modifier.animateItem(),
+                        feed = feed,
+                        author = feed.authorId?.let { vm.authors[it] },
+                        isFavorite = feed.likeList?.any { it == vm.myId } == true,
+                        onClick = { feed.id?.let {
+                            navigator?.push(FeedDetailsScreen(it))
+                        } },
+                        onChangeFavorite = { feed.id?.let { fid ->
+                            vm.changeFavorite(fid, it)
+                        } }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = AppColor.gray400
+                    )
+                }
+            } else{
+                vm.eventFeeds.forEach { group ->
+                    item{
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            text = group.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 12.sp,
+                                maxFontSize = 16.sp
+                            ),
+                            color = AppColor.gray500
+                        )
+                    }
+                    items(
+                        items = group.feeds,
+                        key = { it.id?: it.hashCode() }
+                    ){ feed ->
+                        FeedCard(
+                            modifier = Modifier.animateItem(),
+                            feed = feed,
+                            author = feed.authorId?.let { vm.authors[it] },
+                            isFavorite = feed.likeList?.any { it == vm.myId } == true,
+                            onClick = { feed.id?.let {
+                                navigator?.push(FeedDetailsScreen(it))
+                            } },
+                            onChangeFavorite = { feed.id?.let { fid ->
+                                vm.changeFavorite(fid, it)
+                            } }
+                        )
+                    }
+                }
             }
         }
 
     }
-
-
-    @Composable
-    private fun TypeFilter(
-        modifier: Modifier = Modifier,
-        current: FeedType?,
-        onChange: (FeedType?) -> Unit
-    ) = Row(
-        modifier = modifier
-            .padding(vertical = 16.dp)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ){
-        Spacer(Modifier.width(8.dp))
-        FeedType.entries.forEach {
-            FilterChip(
-                emoji = it.emoji,
-                title = it.displayName.lowercase().replaceFirstChar { it.uppercase() },
-                isSelected = current == it,
-                onSelect = { onChange(it.takeIf { it != current }) }
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-    }
-    
-    @Composable
-    private fun Toolbar(
-        modifier: Modifier = Modifier,
-    ) = Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ){
-        Spacer(Modifier)
-        Text(
-            text = title(),
-            style = MaterialTheme.typography.titleMedium,
-            color = AppColor.gray900,
-            fontWeight = FontWeight.SemiBold
-        )
-//        Box(
-//            modifier = Modifier
-//                .align(Alignment.CenterEnd)
-//                .padding(end = 8.dp)
-//                .padding(vertical = 4.dp)
-//                .clip(CircleShape)
-//                .background(shimmerBrush())
-//                .clickable(
-//                    enabled = false
-//                ) { onClickMyPost() }
-//                .padding(
-//                    vertical = 4.dp,
-//                    horizontal = 12.dp
-//                ),
-//            contentAlignment = Alignment.Center
-//        ) {
-//            Text(
-//                text = "BETA",//stringResource(R.string.my_posts),
-//                style = MaterialTheme.typography.bodySmall,
-//                color = AppColor.gray100
-//            )
-//        }
-    }
-
-    @Composable
-    private fun FilterChip(
-        modifier: Modifier = Modifier,
-        emoji: String,
-        title: String,
-        isSelected: Boolean,
-        onSelect: () -> Unit
-    ) = TextButton(
-        modifier = modifier.height(34.dp),
-        shape = CircleShape,
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 4.dp
-        ),
-        colors = ButtonDefaults.textButtonColors(
-            containerColor = when (isSelected) {
-                true -> AppColor.blueGray700
-                false -> AppColor.gray100
-            }
-        ),
-        onClick = { onSelect() }
-    ) {
-        Text(
-            text = "$emoji $title",
-            style = MaterialTheme.typography.labelLarge,
-            color = when (isSelected) {
-                true -> AppColor.blueGray100
-                false -> AppColor.gray700
-            }
-        )
-    }
-
 
 }

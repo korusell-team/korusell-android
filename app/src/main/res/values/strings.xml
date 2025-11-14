@@ -93,6 +93,7 @@
     <string name="my_posts">Мои Посты</string>
     <string name="feed">НОВОСТЬ</string>
     <string name="event">СОБЫТИЕ</string>
+    <string name="events">События</string>
     <string name="ads">РЕКЛАМА</string>
     <string name="exit_without_save">Выйти без сохранения?</string>
     <string name="exit_without_save_descr">Все данные будут утеряны. Вы уверены что хотите выйти?</string>
@@ -119,9 +120,23 @@
     <string name="edit_feedback">Изменить отзыв</string>
     <string name="signin_as_guest">Войти как гость</string>
     <string name="top_users">🏆 ТОП 20</string>
+    <string name="active_users">🚀 Недавно активные</string>
     <string name="new_users">👋 Новые на платформе</string>
     <string name="comments">"Коментарии "</string>
     <string name="your_comment">Ваш комментарий...</string>
+    <string name="my_profile">Мой профиль</string>
+    <string name="edit_profile_descr">Редактировать имя, фото и данные</string>
+    <string name="privacy_police">Политика безопасности</string>
+    <string name="prohibited_content_policy">Политика запрещенного контента</string>
+    <string name="updates">Обновления</string>
+    <string name="privacy_police_descr">Правила и условия, приватность</string>
+    <string name="prohibited_content_policy_descr">Наши стандарты и требования к материалам</string>
+    <string name="updates_descr">Проверить новую версию\nТекущая версия: %1$s</string>
+    <string name="logout_with_account">Выйти из аккаунта</string>
+    <string name="delete_account">Удаление аккаунта</string>
+    <string name="delete_account_descr">Все данные будут удалены</string>
+    <string name="signin_account">Войти в аккаунт</string>
+    <string name="main">Главное</string>
 
 
 </resources>

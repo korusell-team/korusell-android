@@ -3,9 +3,12 @@ package net.alienminds.ethnogram.ui.screens.session.contacts.list.components
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -26,30 +29,47 @@ import androidx.compose.ui.unit.dp
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.ContactsListScreen
+import net.alienminds.ethnogram.ui.screens.session.feed.list.FeedListScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 
 
 @Composable
 fun ContactsListScreen.ContactsToolbar(
     modifier: Modifier = Modifier,
-    avatarUrl: String?,
-    initials: String,
     searchMode: Boolean,
-    isAnonymous: Boolean,
     onChangeSearchMode: (Boolean) -> Unit,
     onOpenCities: () -> Unit,
-    onShowProfile: () -> Unit,
-    onSignIn: () -> Unit
-) = Row(
+) = Box(
     modifier = modifier
         .fillMaxWidth()
         .heightIn(44.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.SpaceBetween
+    contentAlignment = Alignment.Center
 ){
+    Text(
+        modifier = Modifier
+            .align(Alignment.CenterStart)
+            .padding(vertical = 8.dp),
+        text = stringResource(R.string.contacts),
+        style = MaterialTheme.typography.titleMedium,
+        color = AppColor.gray900,
+        fontWeight = FontWeight.SemiBold
+    )
+
     Row(
+        modifier = Modifier.align(Alignment.CenterEnd),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ){
+        IconButton(
+            modifier = Modifier.size(34.dp),
+            onClick = onOpenCities
+        ) {
+            Icon(
+                modifier = Modifier.size(24.dp),
+                painter = painterResource(R.drawable.ic_mappin_circle),
+                tint = AppColor.gray900,
+                contentDescription = null
+            )
+        }
         IconButton(
             modifier = Modifier.size(34.dp),
             onClick = { onChangeSearchMode(searchMode.not()) }
@@ -66,46 +86,6 @@ fun ContactsListScreen.ContactsToolbar(
                 )
             }
         }
-        IconButton(
-            modifier = Modifier.size(34.dp),
-            onClick = onOpenCities
-        ) {
-            Icon(
-                modifier = Modifier.size(24.dp),
-                painter = painterResource(R.drawable.ic_mappin_circle),
-                tint = AppColor.gray900,
-                contentDescription = null
-            )
-        }
     }
 
-    Text(
-        text = stringResource(R.string.contacts),
-        style = MaterialTheme.typography.titleMedium,
-        color = AppColor.gray900,
-        fontWeight = FontWeight.SemiBold
-    )
-
-    if (isAnonymous){
-        TextButton(
-            onClick = onSignIn
-        ) {
-            Text(
-                text = "Войти",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColor.blue400,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    } else {
-        Avatar(
-            modifier = Modifier.size(34.dp),
-            model = avatarUrl,
-            initials = initials,
-            onClick = onShowProfile,
-            border = BorderStroke(1.dp, AppColor.gray900),
-            textStyle = MaterialTheme.typography.bodyMedium,
-            contentScale = ContentScale.Crop
-        )
-    }
 }

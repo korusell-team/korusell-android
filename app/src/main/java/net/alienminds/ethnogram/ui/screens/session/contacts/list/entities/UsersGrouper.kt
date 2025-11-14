@@ -2,16 +2,23 @@ package net.alienminds.ethnogram.ui.screens.session.contacts.list.entities
 
 import android.content.Context
 import net.alienminds.ethnogram.R
+import net.alienminds.ethnogram.service.BuildConfig
 import net.alienminds.ethnogram.service.data.entities.Category
 import net.alienminds.ethnogram.service.data.entities.City
 import net.alienminds.ethnogram.service.user.entities.User
 import java.time.Instant
+import kotlin.text.compareTo
 
 
 internal data class UserGroup(
-    val title: String,
-    val users: List<User>
-)
+    val title: String?,
+    val users: List<User>,
+    val groupType: Type = Type.DEFAULT
+){
+    enum class Type{
+        DEFAULT, SPONSORED
+    }
+}
 
 internal class UserGrouper(
     private val ctx: Context
@@ -50,7 +57,9 @@ internal class UserGrouper(
 
         return when(isDefault){
             true -> listOf(
+                unblockedUsers.sponsoredUsersGroup(),
                 unblockedUsers.newUsersGroup(),
+                unblockedUsers.activeUsersGroup(),
                 unblockedUsers.topUsersGroup()
             )
             false -> listOf(
@@ -64,6 +73,19 @@ internal class UserGrouper(
                 )
             )
         }.filter { it.users.isNotEmpty() }
+    }
+
+    private fun List<User>.sponsoredUsersGroup(): UserGroup {
+        return UserGroup(
+            title = null,
+            users = filter {
+                it.sponsoredExpDate?.let { it > Instant.now() || BuildConfig.DEBUG } == true && (it.priority?: 0) >= 1
+            }.sortedWith(
+                compareByDescending<User> { it.priority ?: 0L }
+                    .thenByDescending { it.likes.size }
+            ),
+            groupType = UserGroup.Type.SPONSORED
+        )
     }
 
     private fun List<User>.newUsersGroup(): UserGroup {
@@ -80,6 +102,14 @@ internal class UserGrouper(
         return UserGroup(
             title = ctx.getString(R.string.top_users),
             users = sortedByDescending { it.likes.size }.take(20)
+        )
+    }
+
+
+    private fun List<User>.activeUsersGroup(): UserGroup {
+        return UserGroup(
+            title = ctx.getString(R.string.active_users),
+            users = sortedByDescending { it.updated }.take(15)
         )
     }
 
@@ -103,7 +133,11 @@ internal class UserGrouper(
                     subCategories = filteredSubCategories(allCategories, category?.id)
                 )
             }
-        }
+        }.sortedWith(
+            compareByDescending<User> { it.sponsoredExpDate?.let { it > Instant.now() } == true }
+                .thenByDescending { it.priority ?: 0L }
+                .thenByDescending { it.likes.size }
+            )
 
 
         val title = listOfNotNull(
