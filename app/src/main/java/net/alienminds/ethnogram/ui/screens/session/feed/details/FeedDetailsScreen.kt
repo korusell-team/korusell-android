@@ -59,6 +59,7 @@ import net.alienminds.ethnogram.ui.screens.session.feed.all_comments.AllComments
 import net.alienminds.ethnogram.ui.screens.session.feed.components.AuthorContent
 import net.alienminds.ethnogram.ui.screens.session.feed.components.FeedTypeMark
 import net.alienminds.ethnogram.ui.screens.session.feed.components.LinkPreviewCover
+import net.alienminds.ethnogram.ui.screens.session.feed.components.LinkPreviewListCover
 import net.alienminds.ethnogram.ui.screens.session.feed.components.LocalLinkPreviewStateHolder
 import net.alienminds.ethnogram.ui.theme.AppColor
 import ru.iquack.linkpreview.compose.LinkPreviewState
@@ -95,26 +96,17 @@ internal class FeedDetailsScreen(
         ){
             if (coverFail.not()) {
                 Box(
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
                 ) {
-                    LinkPreviewCover(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(MaterialTheme.shapes.large),
+                    LinkPreviewListCover(
+                        modifier = Modifier.fillMaxWidth(),
                         linkPreviewUrl = vm.feed?.webLink,
                         fallbackImageUrl = vm.feed?.imageUrl,
                         onShowInfo = { vm.feed?.webLink?.let(uriHandler::openUri) }
                     )
-//                    CoverImage(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .aspectRatio(1f),
-//                        imageUrl = vm.feed?.imageUrl,
-//                    )
                     vm.feed?.type?.let { type ->
                         FeedTypeMark(
-                            modifier = Modifier.padding(8.dp),
+                            modifier = Modifier.padding(16.dp),
                             type = type
                         )
                     }

@@ -84,7 +84,8 @@ fun FeedCard(
             feed = feed,
             author = author,
             isFavorite = isFavorite,
-            onChangeFavorite = onChangeFavorite
+            onChangeFavorite = onChangeFavorite,
+            onClick = onClick
         )
     } else {
         DefaultFeedCard(
@@ -238,7 +239,8 @@ private fun BigFeedCard(
     feed: Feed,
     author: Author?,
     isFavorite: Boolean?,
-    onChangeFavorite: ((Boolean) -> Unit)?
+    onChangeFavorite: ((Boolean) -> Unit)?,
+    onClick: () -> Unit
 ) = Column(
     modifier = modifier.fillMaxWidth()
 ){
@@ -248,7 +250,9 @@ private fun BigFeedCard(
             modifier = Modifier.fillMaxWidth(),
             linkPreviewUrl = feed.webLink,
             fallbackImageUrl = feed.imageUrl,
-            onShowInfo = { feed.webLink?.let(uriHandler::openUri) }
+            onShowInfo = { feed.webLink?.let(uriHandler::openUri)?: run{
+                onClick()
+            } }
         )
         feed.type?.let { type ->
             FeedTypeMark(
@@ -256,21 +260,6 @@ private fun BigFeedCard(
                 type = type
             )
         }
-    }
-    if (feed.type == FeedType.EVENT) {
-        val date = feed.eventDetails?.startTime?.let {
-            LocalDateTime.ofInstant(it, ZoneId.systemDefault())
-        }
-        Text(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .padding(horizontal = 16.dp),
-            text = date?.let {
-                DateTimeFormatter.ofPattern("dd MMMM в hh:mm").format(it)
-            }.orEmpty(),
-            style = MaterialTheme.typography.labelSmall,
-            color = AppColor.gray700
-        )
     }
     PrimaryContent(
         modifier = Modifier

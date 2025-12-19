@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.navigator.Navigator
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import net.alienminds.ethnogram.service.auth.AuthRepository
@@ -19,7 +20,8 @@ import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
 
 class ProfileViewModel(
-    private val userId: String?
+    private val userId: String?,
+    private val navigator: Navigator?
 ): AppScreenModel() {
 
     private val authRepo by inject<AuthRepository>()
@@ -34,7 +36,9 @@ class ProfileViewModel(
 
     val user by when(userId == null){
         true -> userRepo.meFlow.asStateWithLoading(null)
-        false -> userRepo.getUserFlow(userId).asStateWithLoading(null)
+        false -> userRepo.getUserFlow(userId).catch {
+            navigator?.pop()
+        }.asStateWithLoading(null)
     }
 
     val isMe by derivedStateOf { myId == user?.uid }

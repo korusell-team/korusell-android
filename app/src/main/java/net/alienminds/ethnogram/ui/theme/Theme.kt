@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun EthnogramTheme(
     isDarkTheme: Boolean = false,
-    enableDynamic: Boolean = true,
+    enableDynamic: Boolean = false,
     content: @Composable () -> Unit,
 
 ) {

@@ -26,6 +26,7 @@ import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.base.entities.InputField
 import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.user.entities.User
+import net.alienminds.ethnogram.service.user.entities.UserType
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import java.util.UUID
 import kotlin.collections.associate
@@ -167,7 +168,12 @@ class UserRepository internal constructor(
 
     fun getUserFlow(userId: String) = callbackFlow{
         closeIfLogout()
-        val user = getUser(userId).getOrNull()?.also {
+        val userResult = getUser(userId)
+        if(userResult.isFailure){
+            close(userResult.exceptionOrNull())
+            return@callbackFlow
+        }
+        val user = userResult.getOrNull()?.also {
             trySend(it)
         }
 
@@ -300,8 +306,30 @@ class UserRepository internal constructor(
         vararg values: InputField<Any>
     ){
         val map = values.associate { Pair(it.field.key, it.value) }.toMutableMap()
+        if(map.contains(User.Field.TYPE.key)){
+            map[User.Field.TYPE.key] = when(val type = map[User.Field.TYPE.key]){
+                is UserType -> type == UserType.BUSINESS
+                is Boolean -> type
+                else -> throw IllegalArgumentException("Invalid type for UserType field")
+            }
+            if (map[User.Field.TYPE.key] == true){
+                map[User.Field.SURNAME.key] = FieldValue.delete()
+            }
+        }
         map[User.Field.UID.key] = userId
         map[User.Field.UPDATED.key] = FieldValue.serverTimestamp()
+
+        // Удаляем пустые поля
+        map.forEach { (key, value) ->
+            when(value){
+                is String -> if (value.isEmpty()) {
+                    map[key] = FieldValue.delete()
+                }
+                is List<*> -> if (value.isEmpty()) {
+                    map[key] = FieldValue.delete()
+                }
+            }
+        }
 
         val task = collection
             .document(userId)
@@ -324,11 +352,33 @@ class UserRepository internal constructor(
         val isNotCreated = me?.phone.isNullOrEmpty() || me.created == null
 
         val map = values.associate { Pair(it.field.key, it.value) }.toMutableMap()
+        if(map.contains(User.Field.TYPE.key)){
+            map[User.Field.TYPE.key] = when(val type = map[User.Field.TYPE.key]){
+                is UserType -> type == UserType.BUSINESS
+                is Boolean -> type
+                else -> throw IllegalArgumentException("Invalid type for UserType field")
+            }
+            if (map[User.Field.TYPE.key] == true){
+                map[User.Field.SURNAME.key] = FieldValue.delete()
+            }
+        }
         map[User.Field.UID.key] = meId
         map[User.Field.UPDATED.key] = FieldValue.serverTimestamp()
         if (isNotCreated){
             map[User.Field.PHONE.key] = authRepository.currentUser?.phoneNumber?: throw IllegalStateException("User is not signed in")
             map[User.Field.CREATED.key] = FieldValue.serverTimestamp()
+        }
+
+        // Удаляем пустые поля
+        map.forEach { (key, value) ->
+            when(value){
+                is String -> if (value.isEmpty()) {
+                    map[key] = FieldValue.delete()
+                }
+                is List<*> -> if (value.isEmpty()) {
+                    map[key] = FieldValue.delete()
+                }
+            }
         }
 
         val task = collection

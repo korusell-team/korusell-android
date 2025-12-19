@@ -56,11 +56,4 @@ class AccountModel: AppScreenModel() {
         navigator?.root?.replaceAll(AuthScreen())
     }
 
-    fun deleteAccount(navigator: Navigator?) = launchWithLoading{
-        userRepo.deleteMyAccount().onSuccess {
-            authRepo.logout()
-            navigator?.root?.replaceAll(AuthScreen())
-        }
-    }
-
 }

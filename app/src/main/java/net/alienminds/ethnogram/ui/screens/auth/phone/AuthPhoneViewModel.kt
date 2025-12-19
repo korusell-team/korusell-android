@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.TextFieldValue
 import cafe.adriel.voyager.navigator.Navigator
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.auth.entities.SignInByPhoneResult
@@ -11,18 +12,20 @@ import net.alienminds.ethnogram.service.prefs.PrefsRepository
 import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.ui.screens.auth.otp.AuthOTPScreen
 import net.alienminds.ethnogram.utils.AppScreenModel
+import net.alienminds.ethnogram.utils.UniversalPhoneVisualTransformation
 import net.alienminds.ethnogram.utils.UserStateProvider
 import net.alienminds.ethnogram.utils.findActivity
-import net.alienminds.ethnogram.utils.phoneToFbPhone
 import org.koin.core.component.inject
 
 class AuthPhoneViewModel: AppScreenModel() {
 
     private val authRepo by inject<AuthRepository>()
-    private val prefsRepo by inject<PrefsRepository>()
     private val userStateProvider by inject<UserStateProvider>()
 
-    var phone by mutableStateOf("")
+    private var _phoneFieldValue by mutableStateOf(TextFieldValue(""))
+    var phoneFieldValue
+        get() = UniversalPhoneVisualTransformation.filterPhoneInput(_phoneFieldValue)
+        set(value){ _phoneFieldValue = UniversalPhoneVisualTransformation.filterPhoneInput(value) }
 
     fun signIn(
         context: Context,
@@ -30,7 +33,7 @@ class AuthPhoneViewModel: AppScreenModel() {
     ) = launchWithLoading {
         context.findActivity()?.let { activity ->
             authRepo.signInByPhone(
-                phoneNumber = phoneToFbPhone(phone),
+                phoneNumber = UniversalPhoneVisualTransformation.formatToE164(phoneFieldValue.text),
                 activity = activity
             ).onFailure {
                 error = it

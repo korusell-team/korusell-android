@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import net.alienminds.ethnogram.R
+import net.alienminds.ethnogram.ui.theme.AppColor
 
 
 @Composable
@@ -21,10 +22,10 @@ fun AppAlertDialog(
     state: AppDialogState,
     title: String,
     text: String,
-    containerColor: Color = AlertDialogDefaults.containerColor,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
-    titleContentColor: Color = AlertDialogDefaults.titleContentColor,
-    textContentColor: Color = AlertDialogDefaults.textContentColor,
+    titleContentColor: Color = MaterialTheme.colorScheme.onSurface,
+    textContentColor: Color = MaterialTheme.colorScheme.onSurface,
     dismissColor: Color? = null,
     confirmColor: Color? = null,
     confirmText: String = stringResource(R.string.ok),

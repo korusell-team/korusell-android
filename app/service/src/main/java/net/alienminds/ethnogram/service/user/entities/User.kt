@@ -1,11 +1,17 @@
 package net.alienminds.ethnogram.service.user.entities
 
+import android.location.Location
 import com.google.firebase.firestore.DocumentSnapshot
 import net.alienminds.ethnogram.service.base.entities.Field
 import net.alienminds.ethnogram.service.utils.getInstant
+import net.alienminds.ethnogram.service.utils.getUserType
 import net.alienminds.ethnogram.service.utils.getValue
 import java.time.Instant
 
+enum class UserType{
+    PERSONAL,
+    BUSINESS
+}
 
 data class User(
     val uid: String? = null,
@@ -30,7 +36,11 @@ data class User(
     val sponsoredExpDate: Instant? = null,
     val created: Instant? = null,
     val updated: Instant? = null,
-    val avgRating: Double = 0.0
+    val avgRating: Double = 0.0,
+    val type: UserType = UserType.PERSONAL, // isCompany field
+    val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 ){
 
     internal constructor(
@@ -58,11 +68,15 @@ data class User(
         created = doc.getInstant(Field.CREATED),
         updated = doc.getInstant(Field.UPDATED),
         social = UserSocial(doc),
-        avgRating = doc.getValue(Field.AVG_RATING)
+        avgRating = doc.getValue(Field.AVG_RATING),
+        type = doc.getUserType(Field.TYPE),
+        address = doc.getValue(Field.ADDRESS),
+        latitude = doc.getValue(Field.LATITUDE),
+        longitude = doc.getValue(Field.LONGITUDE),
     )
 
     val fullName
-        get() = "${name.orEmpty()} ${surname.orEmpty()}".trim()
+        get() = "${surname.orEmpty()} ${name.orEmpty()} ".trim()
 
     val initials
         get() = buildString {
@@ -74,6 +88,15 @@ data class User(
         get() = name.isNullOrEmpty().not() ||
                 surname.isNullOrEmpty().not() ||
                 image.isNotEmpty()
+
+    val isSponsored // sponsoredExpDate > now
+        get() = sponsoredExpDate?.let { it > Instant.now() } == true
+
+    val isLocationAvailable
+        get() = latitude != null && longitude != null
+
+    val link
+        get() = "https://ethnogram.alienminds.net/profile?uid=$uid"
 
     object Field{
         val UID = Field<String>("uid"){ error("User ID can't be = null") }
@@ -94,10 +117,14 @@ data class User(
         val BLOCKED = Field("blockedBy", emptyList<String>())
         val REPORTS = Field("reports", emptyList<String>())
         val AVG_RATING = Field("avgRating", 0.0)
+        val TYPE = Field("isCompany", UserType.PERSONAL)
+        val ADDRESS = Field<String?>("address", null)
 
         //Not editable fields
         internal val PHONE = Field<String?>("phone", null)
         internal val SPONSORED_EXP_DATE = Field<Instant?>("sponsoredExpDate", null)
+        internal val LATITUDE = Field<Double?>("latitude", null)
+        internal val LONGITUDE = Field<Double?>("longitude", null)
         internal val CREATED = Field<Instant?>("created", null)
         internal val UPDATED = Field<Instant?>("updated", null)
     }

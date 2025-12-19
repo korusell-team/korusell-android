@@ -50,8 +50,8 @@ fun ContactsListScreen.ContactsToolbar(
             .align(Alignment.CenterStart)
             .padding(vertical = 8.dp),
         text = stringResource(R.string.contacts),
-        style = MaterialTheme.typography.titleMedium,
-        color = AppColor.gray900,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground,
         fontWeight = FontWeight.SemiBold
     )
 

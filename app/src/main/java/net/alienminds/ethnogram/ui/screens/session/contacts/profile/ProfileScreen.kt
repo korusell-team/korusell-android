@@ -5,9 +5,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -29,15 +34,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +55,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -58,6 +69,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -73,12 +86,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import coil3.compose.AsyncImage
+import com.google.android.gms.maps.model.LatLng
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.mappers.copyToClipboard
 import net.alienminds.ethnogram.mappers.displayValue
@@ -117,10 +132,10 @@ class ProfileScreen(
     override fun Content() = Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColor.gray100)
+            .background(MaterialTheme.colorScheme.background)
     ){
         val navigator = LocalNavigator.current
-        val vm = rememberScreenModel { ProfileViewModel(userId) }
+        val vm = rememberScreenModel { ProfileViewModel(userId, navigator) }
 
         val density = LocalDensity.current
         val scrollState = rememberScrollState()
@@ -171,7 +186,8 @@ class ProfileScreen(
                             )
                         ),
                     loading = vm.loading,
-                    images = vm.user?.image ?: emptyList()
+                    images = vm.user?.image ?: emptyList(),
+                    isSponsored = vm.user?.isSponsored == true
                 )
 
                 HeaderNameBlock(
@@ -181,7 +197,16 @@ class ProfileScreen(
                         .fillMaxWidth(),
                     fullName = vm.user?.fullName.orEmpty(),
                     city = vm.city.joinToString { it.localName },
-                    phone = vm.user?.phone?.takeIf { vm.user?.phoneIsAvailable ?: false }
+                    phone = vm.user?.phone?.takeIf { vm.user?.phoneIsAvailable ?: false },
+                    link = vm.user?.link.orEmpty(),
+                    address = vm.user?.address,
+                    location = vm.user?.run {
+                        latitude?.let { lat ->
+                            longitude?.let { lng ->
+                                LatLng(lat, lng)
+                            }
+                        }
+                    }
                 )
                 HeaderBioBlock(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -217,7 +242,7 @@ class ProfileScreen(
                         append(stringResource(R.string.rating))
                         append(": ")
                         withStyle(SpanStyle(
-                            color = AppColor.gray700,
+                            color = MaterialTheme.colorScheme.outline,
                             fontWeight = FontWeight.Medium
                         )){
                             if (vm.feedbacks.isNotEmpty()) {
@@ -229,7 +254,7 @@ class ProfileScreen(
                         }
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AppColor.gray900,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp
                 )
                 HorizontalDivider(Modifier.padding(16.dp))
@@ -240,7 +265,7 @@ class ProfileScreen(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         text = stringResource(R.string.feedbacks),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = AppColor.gray900,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 16.sp
                     )
                     if (vm.feedbacks.isNotEmpty()) {
@@ -251,7 +276,7 @@ class ProfileScreen(
                             Text(
                                 text = stringResource(R.string.all_feedbacks),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = AppColor.blue400,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 16.sp
                             )
                         }
@@ -275,7 +300,7 @@ class ProfileScreen(
                                 false -> stringResource(R.string.edit_feedback)
                             },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = AppColor.gray700,
+                            color = MaterialTheme.colorScheme.outline,
                             fontSize = 16.sp
                         )
                     }
@@ -311,8 +336,8 @@ class ProfileScreen(
                         shape = MaterialTheme.shapes.large,
                         onClick = { vm.logout(navigator) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColor.white,
-                            contentColor = AppColor.red400
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
                         Text(stringResource(R.string.logout))
@@ -360,7 +385,7 @@ class ProfileScreen(
                 shape = MaterialTheme.shapes.medium
             )
             .background(
-                color = AppColor.gray200,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = MaterialTheme.shapes.medium
             )
             .padding(16.dp)
@@ -371,12 +396,12 @@ class ProfileScreen(
                 author = author,
                 avatarSize = 32.dp,
                 textStyle = MaterialTheme.typography.titleSmall,
-                textColor = AppColor.gray900
+                textColor = MaterialTheme.colorScheme.onBackground
             ) {
                 Text(
                     text = "⭐\uFE0F ${feedback.rating.roundToInt()}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppColor.gray900,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -389,7 +414,7 @@ class ProfileScreen(
             text = feedback.comment.orEmpty(),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = AppColor.gray700
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -453,7 +478,7 @@ class ProfileScreen(
                 DropdownButton(
                     painter = painterResource(R.drawable.ic_more_horiz),
                     tint = tint,
-                    containerColor = AppColor.gray100
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     ItemButton(
                         text = stringResource(R.string.block),
@@ -476,6 +501,7 @@ class ProfileScreen(
         modifier: Modifier = Modifier,
         loading: Boolean,
         images: List<String>,
+        isSponsored: Boolean
     ) = Box(
         modifier = modifier
             .background(AppColor.gray200)
@@ -519,7 +545,40 @@ class ProfileScreen(
                 tint = AppColor.gray300
             )
         }
-
+        if(isSponsored){
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .background(
+                        brush = Brush.linearGradient(listOf(
+                            Color(230f / 255f, 232f / 255f, 235f / 255f),
+                            Color(200f / 255f, 202f / 255f, 205f / 255f),
+                            Color(245f / 255f, 247f / 255f, 250f / 255f),
+                            Color(180f / 255f, 182f / 255f, 185f / 255f)
+                        )),
+                        shape = MaterialTheme.shapes.small
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = AppColor.gray400,
+                        shape = MaterialTheme.shapes.small
+                    ),
+                contentAlignment = Alignment.Center
+            ){
+                Text(
+                    modifier = Modifier.padding(
+                        horizontal = 8.dp,
+                        vertical = 4.dp
+                    ),
+                    text = stringResource(R.string.badge_plus),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColor.gray800
+                )
+            }
+        }
+        //Badge P L U S
     }
 
     @Composable
@@ -527,12 +586,24 @@ class ProfileScreen(
         modifier: Modifier = Modifier,
         fullName: String,
         city: String,
-        phone: String?
+        phone: String?,
+        link: String,
+        address: String?,
+        location: LatLng?
     ) = Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
     ){
         val context = LocalContext.current
+        var showNavigatorMenu by remember { mutableStateOf(false) }
+        val params = location?.let {
+            IntentActions.Navigation.LocationParams(
+                latitude = it.latitude,
+                longitude = it.longitude,
+                address = address
+            )
+        }
+
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -541,7 +612,7 @@ class ProfileScreen(
                 text = fullName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = AppColor.gray900,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -549,44 +620,113 @@ class ProfileScreen(
             Text(
                 text = city,
                 style = MaterialTheme.typography.titleSmall,
-                color = AppColor.gray600
+                color = MaterialTheme.colorScheme.outline
             )
         }
 
-        AnimatedVisibility(
-            visible = phone != null
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            @Composable
+            fun CircleIconButton(
+                icon: Painter,
+                accentColor: Color,
+                visible: Boolean = true,
+                onClick: () -> Unit,
+            ) = AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
             ) {
                 IconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = { phone?.let { IntentActions.callNumber(context, it) } },
+                    modifier = Modifier.size(32.dp),
+                    onClick = onClick,
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = AppColor.green700,
-                        contentColor = AppColor.gray100
+                        containerColor = accentColor,
+                        contentColor = MaterialTheme.colorScheme.background
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null
-                    )
-                }
-
-                IconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = { phone?.let { IntentActions.sendMessage(context, it) } },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = AppColor.green700,
-                        contentColor = AppColor.gray100
-                    )
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_chat_bubble),
+                        modifier = Modifier.size(16.dp),
+                        painter = icon,
                         contentDescription = null
                     )
                 }
             }
+
+            Box {
+                CircleIconButton(
+                    visible = location != null,
+                    icon = painterResource(R.drawable.ic_route),
+                    accentColor = AppColor.purple600,
+                    onClick = { showNavigatorMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showNavigatorMenu,
+                    onDismissRequest = { showNavigatorMenu = false },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    offset = DpOffset(
+                        x = 0.dp,
+                        y = 8.dp
+                    )
+                ) {
+                    val navigators = IntentActions.Navigation.Navigator.entries
+                    navigators.forEach { navigator ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = navigator.title,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            leadingIcon = {
+                                Image(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape),
+                                    painter = navigator.icon,
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = { params?.let {
+                                IntentActions.Navigation.openRoute(context, navigator, params)
+                                showNavigatorMenu = false
+                            } }
+                        )
+                        if(navigator != navigators.lastOrNull()) {
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
+            CircleIconButton(
+                icon = painterResource(R.drawable.ic_share),
+                accentColor = AppColor.blue600,
+                onClick = { IntentActions.shareText(context, fullName, link) }
+            )
+
+            if (phone != null) {
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .align(Alignment.CenterVertically),
+                    color = MaterialTheme.colorScheme.outline,
+                    thickness = 1.dp
+                )
+            }
+            CircleIconButton(
+                visible = phone != null,
+                icon = rememberVectorPainter(Icons.Default.Phone),
+                accentColor = AppColor.green700,
+                onClick = { phone?.let { IntentActions.callNumber(context, it) } }
+            )
+            CircleIconButton(
+                visible = phone != null,
+                icon = painterResource(R.drawable.ic_chat_bubble),
+                accentColor = AppColor.green700,
+                onClick = { phone?.let { IntentActions.sendMessage(context, it) } }
+            )
         }
     }
 
@@ -611,7 +751,7 @@ class ProfileScreen(
                 categories.forEach { cat ->
                     Box(
                         modifier = Modifier.background(
-                            color = AppColor.gray200,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
                             shape = MaterialTheme.shapes.extraSmall
                         )
                     ) {
@@ -619,7 +759,7 @@ class ProfileScreen(
                             modifier = Modifier.padding(4.dp),
                             text = cat.title,
                             style = MaterialTheme.typography.labelMedium,
-                            color = AppColor.gray700,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis
@@ -633,7 +773,7 @@ class ProfileScreen(
             text = bio,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = AppColor.gray600,
+            color = MaterialTheme.colorScheme.outline,
             maxLines = 4,
             overflow = TextOverflow.Ellipsis
         )
@@ -654,17 +794,19 @@ class ProfileScreen(
             }
         )
 
+        @Composable
         fun AnnotatedString.Builder.appendTitle() = withStyle(SpanStyle(
-            color = AppColor.gray900,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )) { append("О cебе:\n") }
 
+        @Composable
         fun AnnotatedString.Builder.appendMoreButton() = withLink(
             link = LinkAnnotation.Clickable(
                 tag = "more",
                 styles = TextLinkStyles(SpanStyle(
-                    color = AppColor.blue300,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )),
                 linkInteractionListener = { expandedBio = expandedBio.not() }
@@ -688,7 +830,7 @@ class ProfileScreen(
             },
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = AppColor.gray700
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -716,7 +858,7 @@ class ProfileScreen(
                     )
                     .fillMaxWidth()
                     .background(
-                        color = AppColor.white,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
                         shape = RoundedCornerShape(24.dp)
                     )
                     .combinedClickable(
@@ -747,14 +889,14 @@ class ProfileScreen(
                         text = type.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = AppColor.gray800,
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1
                     )
                     Text(
                         text = type.displayValue(value),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = AppColor.gray500,
+                        color = contentColorFor(MaterialTheme.colorScheme.surfaceContainerLow),
                         maxLines = 1
                     )
                 }
@@ -807,12 +949,24 @@ class ProfileScreen(
                 modifier = modifier,
                 text = relativeTime,
                 style = MaterialTheme.typography.labelSmall,
-                color = AppColor.gray500,
+                color = MaterialTheme.colorScheme.outline,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
         }
     }
+
+    val IntentActions.Navigation.Navigator.title
+        get() = when(this){
+            IntentActions.Navigation.Navigator.KAKAO -> "Kakao map"
+            IntentActions.Navigation.Navigator.NAVER -> "Naver map"
+        }
+
+    val IntentActions.Navigation.Navigator.icon: Painter
+        @Composable get() = when(this){
+            IntentActions.Navigation.Navigator.KAKAO -> painterResource(R.drawable.ic_kakao_maps)
+            IntentActions.Navigation.Navigator.NAVER -> painterResource(R.drawable.ic_naver_maps)
+        }
 
 
 }

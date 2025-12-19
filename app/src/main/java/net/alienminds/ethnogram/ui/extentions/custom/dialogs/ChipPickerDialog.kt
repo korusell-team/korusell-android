@@ -73,9 +73,7 @@ fun <T>ChipPickerDialog(
                     onClose = state::hide
                 )
                 FlowRow(
-                    modifier = Modifier
-
-                        .padding(16.dp),
+                    modifier = Modifier.padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -102,14 +100,17 @@ private fun Title(
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
 ){
-    Text(title)
+    Text(
+        text = title,
+        color = MaterialTheme.colorScheme.onBackground
+    )
     Icon(
         modifier = Modifier
             .size(24.dp)
             .clip(CircleShape)
             .clickable { onClose() },
         imageVector = Icons.Default.Close,
-        tint = AppColor.gray700,
+        tint = MaterialTheme.colorScheme.onBackground,
         contentDescription = null
     )
 }
@@ -124,11 +125,11 @@ private fun ChipItem(
 ){
     val backgroundColor by animateColorAsState(when (selected) {
         true -> AppColor.blueGray700
-        false -> AppColor.gray100
+        false -> MaterialTheme.colorScheme.surfaceContainerLow
     })
     val textColor by animateColorAsState(when (selected) {
         true -> AppColor.blueGray100
-        false -> AppColor.gray700
+        false -> MaterialTheme.colorScheme.onSurface
     })
     TextButton(
         modifier = modifier.height(34.dp),

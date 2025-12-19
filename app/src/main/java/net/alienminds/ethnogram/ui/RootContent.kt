@@ -24,18 +24,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import net.alienminds.ethnogram.service.utils.FCMService
+import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
 import net.alienminds.ethnogram.utils.InAppUpdateManager
+import net.alienminds.ethnogram.utils.IntentProvider
 import net.alienminds.ethnogram.utils.UpdateStatus
 
 @Composable
@@ -45,6 +50,25 @@ internal fun RootContent(
 ){
     val updateState by updateManager.status.collectAsState()
     val snackHostState = remember { SnackbarHostState() }
+    var currentNavigator by remember { mutableStateOf<Navigator?>(null) }
+
+    val intent by IntentProvider.intent.collectAsState()
+    LaunchedEffect(intent, currentNavigator) {
+        currentNavigator?.let { navigator ->
+            intent?.data?.let { intent ->
+                when(intent.path){
+                    "/profile" -> {
+                        val id = intent.getQueryParameter("uid")
+                        val targetScreen = ProfileScreen(id)
+                        if(navigator.lastItemOrNull?.key != targetScreen.key){
+                            navigator.push(ProfileScreen(id))
+                        }
+                        IntentProvider.consumedIntent()
+                    }
+                }
+            }
+        }
+    }
 
     SetupNotifications()
     CheckAppUpdate(
@@ -59,7 +83,12 @@ internal fun RootContent(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            Navigator(startScreen)
+            Navigator(startScreen){
+                LaunchedEffect(it) {
+                    currentNavigator = it
+                }
+                CurrentScreen()
+            }
             UpdateProgressBar(updateState)
             SnackbarHost(
                 modifier = Modifier.statusBarsPadding(),

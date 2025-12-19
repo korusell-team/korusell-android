@@ -119,12 +119,13 @@
     <string name="please_wait_load_feedback">Пожалуйста, дождитесь окончания отправки отзыва</string>
     <string name="edit_feedback">Изменить отзыв</string>
     <string name="signin_as_guest">Войти как гость</string>
-    <string name="top_users">🏆 ТОП 20</string>
+    <string name="top_users">🏆 ТОП %1$d</string>
     <string name="active_users">🚀 Недавно активные</string>
     <string name="new_users">👋 Новые на платформе</string>
     <string name="comments">"Коментарии "</string>
     <string name="your_comment">Ваш комментарий...</string>
     <string name="my_profile">Мой профиль</string>
+    <string name="nav_profile">Профиль</string>
     <string name="edit_profile_descr">Редактировать имя, фото и данные</string>
     <string name="privacy_police">Политика безопасности</string>
     <string name="prohibited_content_policy">Политика запрещенного контента</string>
@@ -137,6 +138,27 @@
     <string name="delete_account_descr">Все данные будут удалены</string>
     <string name="signin_account">Войти в аккаунт</string>
     <string name="main">Главное</string>
+    <string name="search">Поиск</string>
+    <string name="top_10_contacts">TOP - 10 контактов</string>
+    <string name="top_10_locations">топ 10 популярных мест по близости</string>
+    <string name="selected_contacts">Выбранные контакты</string>
+    <string name="personal_profile">Личный профиль</string>
+    <string name="business_profile">Бизнес профиль</string>
+    <string name="company_name">Название компании</string>
+    <string name="input_company_name">Укажите название вашей компании</string>
+    <string name="show_my_address">Показать мой адрес</string>
+    <string name="show_my_address_descr">Возможность проложить маршрут до вашего адреса из профиля</string>
+    <string name="confirm_exit_app">Вы действительно хотите выйти из аккаунта?</string>
+    <string name="confirm_delete_account">Вы действительно хотите удалить свой аккаунт? Это действие будет невозможно отменить.</string>
+    <string name="all_categories">Все категории</string>
+    <string name="badge_plus">P L U S</string>
+    <string name="delete">Удалить</string>
+    <string name="delete_account_q">Удалить аккаунт?</string>
+    <string name="delete_accout_btn">Удалить аккаунт</string>
+    <string name="delete_account_descr2">Все ваши данные, публикации, отзывы и переписки будут безвозвратно удалены. Востановить аккаунт будет не возможно.</string>
+    <string name="profile_and_personal_data">Профиль и личные данные</string>
+    <string name="all_publications">Все публикации и обьявления</string>
+    <string name="feedbacks_and_ratings">Отзывы и рейтинги</string>
 
 
 </resources>

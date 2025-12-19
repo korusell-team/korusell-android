@@ -36,8 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -61,16 +61,15 @@ import net.alienminds.ethnogram.service.data.entities.City
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.extentions.custom.LikeButton
+import net.alienminds.ethnogram.ui.extentions.custom.UserListItem
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.ChipPickerDialog
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.rememberAppDialogState
-import net.alienminds.ethnogram.ui.extentions.navigateByUserState
 import net.alienminds.ethnogram.ui.screens.session.NavBarScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.components.ContactsScreenHeader
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.components.ContactsToolbar
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.entities.UserGroup
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
-import net.alienminds.ethnogram.utils.UserState
 
 object ContactsListScreen: NavBarScreen {
 
@@ -99,7 +98,7 @@ object ContactsListScreen: NavBarScreen {
     override fun Content(){
 
         val navigator = LocalNavigator.currentOrThrow
-        val vm = navigator.rememberNavigatorScreenModel { ContactsListViewModel() }
+        val vm = navigator.rememberNavigatorScreenModel { ContactsListModel() }
         val dialogCities = rememberAppDialogState()
 
         Column(
@@ -124,10 +123,10 @@ object ContactsListScreen: NavBarScreen {
                 currentSubCategory = vm.currentSubCategory,
                 categories = vm.categories,
                 subCategories = vm.subCategories,
-                onSelectCategory = vm::selectCategory,
+                onSelectCategory = SelectCategoryScreen::selectCategory,
                 onSwitchSearchMode = vm::switchSearchMode,
                 onChangeSearch = { vm.searchText = it },
-                onShowAllCategories = { navigator.push(SelectCategoryScreen) }
+                onShowAllCategories = { navigator.push(SelectCategoryScreen(vm.searchMode, vm.searchText)) }
             )
 
             PrimaryContent(
@@ -142,8 +141,8 @@ object ContactsListScreen: NavBarScreen {
                     .fillMaxSize(),
                 userGroups = vm.userGroups,
                 me = vm.me,
-                categories = vm.allCategories,
-                cities = vm.allCities,
+                allCategories = vm.allCategories,
+                allCities = vm.allCities,
                 isAnonymous = vm.isAnonymous,
                 onChangeFavorite = vm::changeFavorite,
             )
@@ -164,8 +163,8 @@ object ContactsListScreen: NavBarScreen {
         modifier: Modifier = Modifier,
         userGroups: List<UserGroup>,
         me: User?,
-        categories: List<Category>,
-        cities: List<City>,
+        allCategories: List<Category>,
+        allCities: List<City>,
         isAnonymous: Boolean,
         onChangeFavorite: (String, Boolean) -> Unit,
     ){
@@ -180,7 +179,7 @@ object ContactsListScreen: NavBarScreen {
         LazyColumn(
             modifier = modifier
                 .background(
-                    color = AppColor.gray100,
+                    color = MaterialTheme.colorScheme.background,
                     shape = RoundedCornerShape(
                         topStart = 100f,
                         topEnd = 100f
@@ -194,7 +193,7 @@ object ContactsListScreen: NavBarScreen {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(AppColor.gray100)
+                                .background(MaterialTheme.colorScheme.background)
                                 .padding(bottom = 8.dp, top = 16.dp)
                                 .padding(horizontal = 16.dp)
                                 .animateItem(),
@@ -215,15 +214,14 @@ object ContactsListScreen: NavBarScreen {
                 items(
                     items = group.users
                 ){ user ->
-                    UserItem(
+                    UserListItem(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .animateItem(),
                         user = user,
                         isFavorite = user.likes.any { me?.uid == it },
-                        isSponsored = group.groupType == UserGroup.Type.SPONSORED,
-                        categories = categories,
-                        cities = cities,
+                        allCategories = allCategories,
+                        allCities = allCities,
                         onChangeFavorite = { isFavorite ->
                             user.uid?.let { userId ->
                                 onChangeFavorite(userId, isFavorite)
@@ -248,7 +246,7 @@ object ContactsListScreen: NavBarScreen {
                             modifier = Modifier.align(Alignment.Center),
                             text = stringResource(R.string.empty_list),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = AppColor.gray400
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }
@@ -256,172 +254,8 @@ object ContactsListScreen: NavBarScreen {
         }
     }
 
-    @Composable
-    private fun UserItem(
-        modifier: Modifier = Modifier,
-        user: User,
-        isFavorite: Boolean,
-        isSponsored: Boolean,
-        categories: List<Category>,
-        cities: List<City>,
-        clickable: Boolean,
-        onChangeFavorite: (Boolean) -> Unit,
-        onClick: () -> Unit
-    ){
 
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable(
-                    interactionSource = null,
-                    indication = null,
-                    enabled = clickable,
-                    onClick = onClick
-                )
-        ){
-            val userCategories = remember(user.categories, categories){
-                user.categories.mapNotNull{ catId ->
-                    categories.find { it.id == catId }
-                }
-            }
 
-            val userCities = remember(user.cities, cities){
-                user.cities.mapNotNull { cityId ->
-                    cities.find { it.id == cityId }
-                }
-            }
 
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ){
-                Row {
-                    Box(
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Avatar(
-                            modifier = Modifier.size(52.dp),
-                            model = user.image.firstOrNull(),
-                            initials = user.initials,
-                            contentScale = ContentScale.Crop,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                        )
-                        if (isSponsored){
-                            CircularTextBadge(
-                                text = "\uD83D\uDE80В Топе",
-                                textAngleDeg = 135f,
-                            )
-                        }
-                    }
-                    Column(
-                        modifier = Modifier.padding(start = 16.dp, end = 8.dp)
-                    ){
-                        Text(
-                            text = remember(user.name, user.surname){ buildString {
-                                user.surname?.let { append("$it ") }
-                                user.name?.let { append(it) }
-                            } },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = AppColor.blueGray900
-                        )
-                        Text(
-                            text = userCities.joinToString { it.localName },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColor.gray500
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 4.dp),
-                            text = user.bio.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColor.gray600,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 2
-                        )
-                    }
-                }
-                LikeButton(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 4.dp),
-                    count = user.likes.size,
-                    isFavorite = isFavorite,
-                    enabled = clickable,
-                    onChange = onChangeFavorite
-                )
-
-            }
-            Row(
-                modifier = Modifier
-                    .padding(bottom = 8.dp, top = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ){
-
-                userCategories.forEach { cat ->
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = AppColor.gray200,
-                                shape = MaterialTheme.shapes.extraSmall
-                            )
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(4.dp),
-                            text = cat.title,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AppColor.gray700,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-            HorizontalDivider(Modifier.padding(start = 80.dp, bottom = 8.dp))
-        }
-    }
-
-    @Composable
-    private fun CircularTextBadge(
-        modifier: Modifier = Modifier,
-        text: String,
-        radiusDp: Dp = 32.dp,
-        strokeWidthDp: Dp = 8.dp,
-        textAngleDeg: Float = 0f,
-        tapeColor: Color = AppColor.yellow400,
-        textColor: Color = AppColor.blueGray600
-    ) {
-        val radiusPx = with(LocalDensity.current) { radiusDp.toPx() }
-        val strokeWidthPx = with(LocalDensity.current) { strokeWidthDp.toPx() }
-
-        Canvas(modifier = modifier.size(radiusDp * 2)) {
-            drawCircle(
-                color = tapeColor,
-                radius = radiusPx,
-                style = Stroke(width = strokeWidthPx)
-            )
-
-            val textRadius = radiusPx - strokeWidthPx / 2f
-
-            val path = Path().apply {
-                addCircle(center.x, center.y, textRadius, Path.Direction.CW)
-            }
-
-            drawContext.canvas.nativeCanvas.apply {
-                val textPaint = Paint().apply {
-                    color = textColor.toArgb()
-                    textSize = strokeWidthDp.toPx()*0.8f
-                    textAlign = Paint.Align.CENTER
-                    typeface = Typeface.DEFAULT_BOLD
-                }
-
-                val circumference = (2 * Math.PI * textRadius).toFloat()
-                val hOffset = (circumference * (textAngleDeg / 360f))
-                val vOffset = -textPaint.descent()
-
-                drawTextOnPath(text, path, hOffset, vOffset, textPaint)
-            }
-        }
-    }
 
 }

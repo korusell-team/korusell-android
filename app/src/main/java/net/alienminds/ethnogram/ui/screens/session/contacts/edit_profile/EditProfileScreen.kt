@@ -1,6 +1,7 @@
 package net.alienminds.ethnogram.ui.screens.session.contacts.edit_profile
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -11,10 +12,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,7 +49,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -56,7 +56,11 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,6 +87,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -95,9 +100,12 @@ import net.alienminds.ethnogram.mappers.localName
 import net.alienminds.ethnogram.mappers.placeholder
 import net.alienminds.ethnogram.mappers.title
 import net.alienminds.ethnogram.service.user.entities.UserSocialType
+import net.alienminds.ethnogram.service.user.entities.UserType
 import net.alienminds.ethnogram.ui.extentions.buttons.ActionButton
 import net.alienminds.ethnogram.ui.extentions.buttons.BackButton
+import net.alienminds.ethnogram.ui.extentions.containers.AppCard
 import net.alienminds.ethnogram.ui.extentions.custom.PageIndicator
+import net.alienminds.ethnogram.ui.extentions.custom.dialogs.AddressPickerDialog
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.AppAlertDialog
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.ChipPickerSheet
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.rememberAppDialogState
@@ -106,6 +114,7 @@ import net.alienminds.ethnogram.ui.extentions.shimmerState
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.AppConst
+import net.alienminds.ethnogram.utils.UniversalPhoneVisualTransformation
 import kotlin.math.roundToInt
 
 class EditProfileScreen: PageTransitionScreen {
@@ -208,9 +217,16 @@ class EditProfileScreen: PageTransitionScreen {
                 onChange = { vm.isAvailablePhone = it }
             )
 
+            TypeBlock(
+                type = vm.type,
+                loading = vm.loading,
+                onTypeChanged = { vm.type = it }
+            )
+
             NameBlock(
                 name = vm.name,
                 surname = vm.surname,
+                type = vm.type,
                 isErrorName = vm.isErrorName,
                 isErrorSurname = vm.isErrorSurname,
                 loading = vm.loading,
@@ -220,9 +236,16 @@ class EditProfileScreen: PageTransitionScreen {
                 }
             )
 
+            AddressBlock(
+                address = vm.address,
+                onChange = { vm.address = it },
+                loading = vm.loading
+            )
+
             CategoryCityBlock(
                 category = vm.categories.takeIf { it.isNotEmpty() }?.joinToString { it.title },
                 city = vm.cities.takeIf { it.isNotEmpty() }?.joinToString { it.localName },
+                loading = vm.loading,
                 isErrorCategory = vm.isErrorCategory,
                 onClickCategory = categoryPicker::show,
                 onClickCity = cityPicker::show
@@ -254,10 +277,14 @@ class EditProfileScreen: PageTransitionScreen {
         }
         Toolbar(
             modifier = Modifier
-                .background(Brush.verticalGradient(listOf(
-                    AppColor.gray100.copy(alpha = 0.5f),
-                    Color.Transparent
-                )))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            AppColor.gray100.copy(alpha = 0.5f),
+                            Color.Transparent
+                        )
+                    )
+                )
                 .statusBarsPadding(),
             canAdd = vm.images.size < AppConst.MAX_IMAGES,
             canRemove = vm.images.isNotEmpty(),
@@ -513,7 +540,7 @@ class EditProfileScreen: PageTransitionScreen {
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             SwitchItem(
@@ -537,7 +564,7 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.public_account_description),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -551,29 +578,16 @@ class EditProfileScreen: PageTransitionScreen {
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             SwitchItem(
                 title = stringResource(R.string.show_phone_number),
+                supporting = UniversalPhoneVisualTransformation.formatToInternational(phone),
                 icon = rememberVectorPainter(Icons.Default.Phone),
                 checked = isAvailablePhone,
                 enabled = loading.not(),
                 onCheckedChange = { onChange(it) }
-            )
-            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-            OutlinedTextField(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth(),
-                value = phone,
-                enabled = loading.not(),
-                readOnly = true,
-                onValueChange = {  },
-                label = { Text(stringResource(R.string.phone_number)) },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Phone
-                )
             )
         }
 
@@ -584,8 +598,43 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.show_phone_description),
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+
+    @Composable
+    private fun TypeBlock(
+        modifier: Modifier = Modifier,
+        type: UserType,
+        loading: Boolean,
+        onTypeChanged: (UserType) -> Unit
+    ) = Column(
+        modifier = modifier
+            .padding(horizontal = 24.dp)
+    ){
+        Text(
+            text = "Тип аккаунта",
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shimmerState(loading),
+        ) {
+            UserType.entries.forEachIndexed { index, item ->
+                SegmentedButton(
+                    selected = type == item,
+                    onClick = { onTypeChanged(item) },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = UserType.entries.size
+                    ),
+                    label = { Text(item.title) }
+                )
+            }
+        }
+
     }
 
     @Composable
@@ -593,6 +642,7 @@ class EditProfileScreen: PageTransitionScreen {
         modifier: Modifier = Modifier,
         name: String,
         surname: String,
+        type: UserType,
         loading: Boolean,
         isErrorName: Boolean,
         isErrorSurname: Boolean,
@@ -600,7 +650,7 @@ class EditProfileScreen: PageTransitionScreen {
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             OutlinedTextField(
@@ -609,36 +659,96 @@ class EditProfileScreen: PageTransitionScreen {
                     .fillMaxWidth(),
                 value = name,
                 onValueChange = { onChange(it, surname) },
-                label = { Text(stringResource(R.string.name)) },
+                label = { Text(when(type) {
+                    UserType.PERSONAL -> stringResource(R.string.name)
+                    UserType.BUSINESS -> stringResource(R.string.company_name)
+                }) },
                 isError = isErrorName,
                 enabled = loading.not(),
                 keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words
+                    capitalization = when(type) {
+                        UserType.PERSONAL -> KeyboardCapitalization.Words
+                        UserType.BUSINESS -> KeyboardCapitalization.None
+                    }
                 )
             )
-            HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-            OutlinedTextField(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth(),
-                value = surname,
-                onValueChange = { onChange(name, it) },
-                label = { Text(stringResource(R.string.surname)) },
-                isError = isErrorSurname,
-                enabled = loading.not(),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words
-                )
-            )
+            AnimatedVisibility(
+                visible = type == UserType.PERSONAL
+            ) {
+                Column{
+//                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
+                        value = surname,
+                        onValueChange = { onChange(name, it) },
+                        label = { Text(stringResource(R.string.surname)) },
+                        isError = isErrorSurname,
+                        enabled = loading.not(),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words
+                        )
+                    )
+                }
+            }
         }
         Text(
             modifier = Modifier
                 .padding(top = 8.dp)
                 .padding(horizontal = 36.dp)
                 .fillMaxWidth(),
-            text = stringResource(R.string.input_name_and_surname),
+            text = when(type) {
+                UserType.PERSONAL -> stringResource(R.string.input_name_and_surname)
+                UserType.BUSINESS -> stringResource(R.string.input_company_name)
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+
+    @Composable
+    private fun AddressBlock(
+        modifier: Modifier = Modifier,
+        address: String,
+        loading: Boolean,
+        onChange: (String) -> Unit
+    ) = Column(
+        modifier = modifier
+    ){
+        var visiblePicker by remember { mutableStateOf(false) }
+        AddressPickerDialog(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(top = 48.dp),
+            visible = visiblePicker,
+            onDismissRequest = { visiblePicker = false },
+            onAddressPicked = { onChange(it.address) }
+        )
+        AppCard(
+            modifier = Modifier.shimmerState(loading)
+        ){
+            SwitchItem(
+                title = stringResource(R.string.show_my_address),
+                supporting = address,
+                icon = painterResource(R.drawable.ic_pin_drop),
+                checked = address.isNotEmpty(),
+                enabled = loading.not(),
+                onCheckedChange = { when(it){
+                    true -> visiblePicker = true
+                    false -> onChange("")
+                } }
+            )
+        }
+
+        Text(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .padding(horizontal = 36.dp)
+                .fillMaxWidth(),
+            text = stringResource(R.string.show_my_address_descr),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -647,13 +757,16 @@ class EditProfileScreen: PageTransitionScreen {
         modifier: Modifier = Modifier,
         category: String?,
         city: String?,
+        loading: Boolean,
         isErrorCategory: Boolean,
         onClickCategory: () -> Unit,
         onClickCity: () -> Unit
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard {
+        AppCard(
+            modifier = Modifier.shimmerState(loading)
+        ){
             ClickableItem(
                 title = stringResource(R.string.category),
                 value = category?: stringResource(R.string.not_specified),
@@ -674,7 +787,7 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.category_city_description),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -687,7 +800,7 @@ class EditProfileScreen: PageTransitionScreen {
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             OutlinedTextField(
@@ -713,7 +826,7 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.bio_description),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -726,7 +839,7 @@ class EditProfileScreen: PageTransitionScreen {
     ) = Column(
         modifier = modifier
     ){
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             OutlinedTextField(
@@ -750,7 +863,7 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.info_description),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
         )
     }
 
@@ -767,7 +880,7 @@ class EditProfileScreen: PageTransitionScreen {
         } }
 
 
-        DefaultCard(
+        AppCard(
             modifier = Modifier.shimmerState(loading)
         ){
             sortedLinks.forEach { (type, value) ->
@@ -792,7 +905,7 @@ class EditProfileScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             text = stringResource(R.string.socials_description),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.outline
         )
 
     }
@@ -885,29 +998,60 @@ class EditProfileScreen: PageTransitionScreen {
     private fun SwitchItem(
         modifier: Modifier = Modifier,
         title: String,
+        supporting: String? = null,
         checked: Boolean,
         enabled: Boolean = true,
         icon: Painter? = null,
         onCheckedChange: (Boolean) -> Unit
-    ) = DefaultItem(
-        modifier = modifier,
-        title = title,
-        leadingContent = {
-            icon?.let {
-                Icon(
-                    painter = icon,
-                    contentDescription = null
+    ){
+        val interactionSource = remember { MutableInteractionSource() }
+        DefaultItem(
+            modifier = modifier
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = { onCheckedChange(checked.not()) }
+                ),
+            title = title,
+            leadingContent = {
+                icon?.let {
+                    Icon(
+                        painter = icon,
+                        contentDescription = null
+                    )
+                }
+            },
+            supportingContent = when(supporting.isNullOrEmpty()){
+                true -> null
+                false -> { { Text(supporting) } }
+            },
+            trailingContent = {
+                Switch(
+                    checked = checked,
+                    enabled = enabled,
+                    onCheckedChange = onCheckedChange,
+                    interactionSource = interactionSource,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        checkedBorderColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+//                        disabledCheckedThumbColor = TODO(),
+//                        disabledCheckedTrackColor = TODO(),
+//                        disabledCheckedBorderColor = TODO(),
+//                        disabledCheckedIconColor = TODO(),
+//                        disabledUncheckedThumbColor = TODO(),
+//                        disabledUncheckedTrackColor = TODO(),
+//                        disabledUncheckedBorderColor = TODO(),
+//                        disabledUncheckedIconColor = TODO(),
+                    )
                 )
             }
-                         },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                enabled = enabled,
-                onCheckedChange = onCheckedChange
-            )
-        }
-    )
+        )
+    }
 
     @Composable
     private fun DefaultItem(
@@ -925,18 +1069,9 @@ class EditProfileScreen: PageTransitionScreen {
         leadingContent = leadingContent,
         trailingContent = trailingContent,
         colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-
+            containerColor = Color.Transparent
         )
     )
 
-    @Composable
-    private fun DefaultCard(
-        modifier: Modifier = Modifier,
-        content: @Composable ColumnScope.() -> Unit
-    ) = ElevatedCard(
-        modifier = modifier.padding(horizontal = 24.dp),
-        content = content
-    )
 
 }

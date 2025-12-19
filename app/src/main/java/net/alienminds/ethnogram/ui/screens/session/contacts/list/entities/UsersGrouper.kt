@@ -1,12 +1,15 @@
 package net.alienminds.ethnogram.ui.screens.session.contacts.list.entities
 
 import android.content.Context
+import com.google.android.gms.maps.Projection
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.service.BuildConfig
 import net.alienminds.ethnogram.service.data.entities.Category
 import net.alienminds.ethnogram.service.data.entities.City
 import net.alienminds.ethnogram.service.user.entities.User
+import net.alienminds.ethnogram.ui.screens.session.map.entities.UserClusterItem
 import java.time.Instant
+import kotlin.collections.sortedWith
 import kotlin.text.compareTo
 
 
@@ -26,7 +29,7 @@ internal class UserGrouper(
 
     fun filteredCategories(
         allCategories: List<Category>,
-        searchMode: Boolean,
+        searchMode: Boolean = false,
         searchText: String = "",
     ) = when (searchMode) {
         true -> allCategories.filter { it.contains(searchText) }
@@ -57,10 +60,9 @@ internal class UserGrouper(
 
         return when(isDefault){
             true -> listOf(
-                unblockedUsers.sponsoredUsersGroup(),
                 unblockedUsers.newUsersGroup(),
+                unblockedUsers.topUsersGroup(20),
                 unblockedUsers.activeUsersGroup(),
-                unblockedUsers.topUsersGroup()
             )
             false -> listOf(
                 unblockedUsers.filterUsersGroup(
@@ -75,11 +77,42 @@ internal class UserGrouper(
         }.filter { it.users.isNotEmpty() }
     }
 
-    private fun List<User>.sponsoredUsersGroup(): UserGroup {
+    fun filterMapUser(
+        myId: String?,
+        category: Category?,
+        subCategory: Category?,
+        allCategories: List<Category>,
+        allUsers: List<User>,
+    ): List<UserClusterItem> {
+        val unblockedUsers = allUsers.filterUsersByBlocking(myId.orEmpty())
+        val isDefault = category == null && subCategory == null
+
+        return when(isDefault){
+            true -> unblockedUsers.filter { it.isSponsored }
+            false -> {
+                unblockedUsers.filterByCategories(
+                    currentCategory = category,
+                    currentSubCategory = subCategory,
+                    subCategories = filteredSubCategories(allCategories, category?.id)
+                ).filter { it.isSponsored }.sortedWith(
+                    compareByDescending<User> { it.sponsoredExpDate?.let { it > Instant.now() } == true }
+                        .thenByDescending { it.priority ?: 0L }
+                        .thenByDescending { it.likes.size }
+                )
+            }
+        }.mapNotNull(UserClusterItem::fromUserOrNull)
+    }
+
+    private fun List<UserClusterItem>.filterInBounds(projection: Projection?): List<UserClusterItem> {
+        if(projection == null) return emptyList()
+        return this.filter { projection.visibleRegion.latLngBounds.contains(it.position) }
+    }
+
+    fun List<User>.sponsoredUsersGroup(): UserGroup {
         return UserGroup(
             title = null,
             users = filter {
-                it.sponsoredExpDate?.let { it > Instant.now() || BuildConfig.DEBUG } == true && (it.priority?: 0) >= 1
+                it.isSponsored && (it.priority?: 0) >= 1
             }.sortedWith(
                 compareByDescending<User> { it.priority ?: 0L }
                     .thenByDescending { it.likes.size }
@@ -94,14 +127,17 @@ internal class UserGrouper(
             title = ctx.getString(R.string.new_users),
             users = filter {
                 it.created?.isAfter(newUserMinLimit) == true
-            }.take(3)
+            }.sortedByDescending { it.created }.take(3)
         )
     }
     
-    private fun List<User>.topUsersGroup(): UserGroup {
+    fun List<User>.topUsersGroup(count: Int): UserGroup {
         return UserGroup(
-            title = ctx.getString(R.string.top_users),
-            users = sortedByDescending { it.likes.size }.take(20)
+            title = ctx.getString(R.string.top_users, count),
+            users = sortedWith(
+                compareByDescending<User>{ it.isSponsored }
+                    .thenByDescending { it.likes.size }
+            ).take(count)
         )
     }
 
@@ -109,7 +145,9 @@ internal class UserGrouper(
     private fun List<User>.activeUsersGroup(): UserGroup {
         return UserGroup(
             title = ctx.getString(R.string.active_users),
-            users = sortedByDescending { it.updated }.take(15)
+            users = sortedByDescending { it.updated }
+                .take(15)
+                .sortedByDescending { it.isSponsored }
         )
     }
 
@@ -159,7 +197,7 @@ internal class UserGrouper(
         )
     }
 
-    private fun List<User>.filterUsersByBlocking(myId: String) = filterNot{ user ->
+    fun List<User>.filterUsersByBlocking(myId: String) = filterNot{ user ->
         user.blockedBy.any { it == myId } ||
                 user.reports.any { it == myId }
     }
@@ -179,7 +217,7 @@ internal class UserGrouper(
         return filter { it.contains(allCategories, searchText, categories) }
     }
 
-    private fun List<User>.filterByCategories(
+    fun List<User>.filterByCategories(
         currentCategory: Category?,
         currentSubCategory: Category?,
         subCategories: List<Category>

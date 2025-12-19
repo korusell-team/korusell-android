@@ -20,7 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.DefaultAlpha
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.ImageRequest
+import coil3.size.Size
+import coil3.size.isOriginal
 import net.alienminds.ethnogram.ui.extentions.shimmerState
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
@@ -50,52 +57,66 @@ fun Avatar(
     alpha: Float = DefaultAlpha,
     shape: Shape = CircleShape,
     border: BorderStroke = BorderStroke(0.dp, Color.Transparent),
+    background: Color = Color.Transparent,
     onClick: (() -> Unit)? = null
-) = SubcomposeAsyncImage(
-    modifier = modifier
-        .clip(shape)
-        .border(border, shape)
-        .clickable(
-            enabled = onClick != null,
-            onClick = { onClick?.invoke() }
-        ),
-    model = model,
-    alignment = alignment,
-    contentScale = contentScale,
-    alpha = alpha,
-    contentDescription = null
 ){
-    val state by painter.state.collectAsState()
-    val derState by remember { derivedStateOf { state } }
-    Box(
-        modifier = Modifier
-            .shimmerState(derState is AsyncImagePainter.State.Loading),
-        contentAlignment = Alignment.Center
-    ) {
-        AnimatedContent(
-            targetState = derState,
-            modifier = Modifier.align(Alignment.Center), label = ""
+    val ctx = LocalContext.current
+    var imgSize by remember(model){ mutableStateOf(Size.ORIGINAL) }
+    val imageRequest = when{
+        imgSize.isOriginal -> ImageRequest.Builder(ctx)
+        model is ImageRequest -> model.newBuilder()
+        else -> ImageRequest.Builder(ctx).data(model)
+    }.size(imgSize).build()
+
+    SubcomposeAsyncImage(
+        modifier = modifier
+            .clip(shape)
+            .border(border, shape)
+            .background(background, shape)
+            .clickable(
+                enabled = onClick != null,
+                onClick = { onClick?.invoke() }
+            ).onSizeChanged{
+                imgSize = Size(it.width, it.height)
+            },
+        model = imageRequest,
+        alignment = alignment,
+        contentScale = contentScale,
+        alpha = alpha,
+        contentDescription = null
+    ){
+        val state by painter.state.collectAsState()
+        val derState by remember { derivedStateOf { state } }
+        Box(
+            modifier = Modifier
+                .shimmerState(derState is AsyncImagePainter.State.Loading),
+            contentAlignment = Alignment.Center
         ) {
-            if (it is AsyncImagePainter.State.Success && it.painter.intrinsicSize.isEmpty().not()) {
-                this@SubcomposeAsyncImage.SubcomposeAsyncImageContent(
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else if (initials.isEmpty()) {
-                Icon(
-                    Icons.Rounded.AccountCircle,
-                    contentDescription = "avatar view",
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth(),
-                    text = initials,
-                    style = textStyle,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
+            AnimatedContent(
+                targetState = derState,
+                modifier = Modifier.align(Alignment.Center), label = ""
+            ) {
+                if (it is AsyncImagePainter.State.Success && it.painter.intrinsicSize.isEmpty().not()) {
+                    this@SubcomposeAsyncImage.SubcomposeAsyncImageContent(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (initials.isEmpty()) {
+                    Icon(
+                        Icons.Rounded.AccountCircle,
+                        contentDescription = "avatar view",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxWidth(),
+                        text = initials,
+                        style = textStyle,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

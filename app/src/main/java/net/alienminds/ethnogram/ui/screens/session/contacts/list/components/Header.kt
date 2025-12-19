@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -85,13 +86,13 @@ fun ContactsScreenHeader(
                 onValueChange = onChangeSearch,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 singleLine = true,
-                cursorBrush = SolidColor(AppColor.indigo200),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 decorationBox = { inner ->
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                color = AppColor.gray200,
+                                color = MaterialTheme.colorScheme.background,
                                 shape = MaterialTheme.shapes.medium
                             )
                             .padding(horizontal = 8.dp),
@@ -101,7 +102,7 @@ fun ContactsScreenHeader(
                         Icon(
                             modifier = Modifier.size(24.dp),
                             imageVector = Icons.Default.Search,
-                            tint = AppColor.gray500,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             contentDescription = null
                         )
                         inner.invoke()
@@ -117,7 +118,7 @@ fun ContactsScreenHeader(
             ) {
                 Text(
                     text = stringResource(R.string.cancel),
-                    color = AppColor.lightBlue700
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -185,16 +186,6 @@ fun FiltersCategories(
             onSelect = onSelect
         )
     }
-//    if (showAllIcon) {
-//        ChipPickerDialog(
-//            state = pickerState,
-//            title = dialogTitle,
-//            items = categories,
-//            itemTitle = { "${it.emoji} ${it.title}" },
-//            itemSelected = { it == currentCategory },
-//            onSelect = onSelect
-//        )
-//    }
 }
 
 private fun LazyListScope.openAllItem(
@@ -209,20 +200,20 @@ private fun LazyListScope.openAllItem(
             defaultElevation = 4.dp
         ),
         colors = ButtonDefaults.textButtonColors(
-            containerColor = AppColor.gray100
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         onClick = onOpenAll
     ) {
         Icon(
             modifier = Modifier.size(24.dp),
             imageVector = Icons.Default.Menu,
-            tint = AppColor.gray700,
+            tint = contentColorFor(MaterialTheme.colorScheme.surfaceContainerLow),
             contentDescription = null
         )
         Text(
-            text = "Все категории",
+            text = stringResource(R.string.all_categories),
             style = MaterialTheme.typography.labelLarge,
-            color = AppColor.gray700
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -233,6 +224,10 @@ private fun LazyListScope.textItems(
     onSelect: (Category) -> Unit
 ) = items(categories) { category ->
     val isSelected = current?.id == category.id
+    val containerColor = when (isSelected) {
+        true -> AppColor.blueGray700
+        false -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
     TextButton(
         modifier = Modifier
             .height(34.dp)
@@ -242,19 +237,16 @@ private fun LazyListScope.textItems(
             defaultElevation = 4.dp
         ),
         colors = ButtonDefaults.textButtonColors(
-            containerColor = when (isSelected) {
-                true -> AppColor.blueGray700
-                false -> AppColor.gray100
-            }
+            containerColor = containerColor
         ),
         onClick = { onSelect(category) }
     ) {
         Text(
             text = "${category.emoji} ${category.title}",
             style = MaterialTheme.typography.labelLarge,
-            color = when (isSelected) {
+            color = when(isSelected) {
                 true -> AppColor.blueGray100
-                false -> AppColor.gray700
+                false -> contentColorFor(containerColor)
             }
         )
     }

@@ -26,6 +26,9 @@ data class Category(
     val isCategory get() = parentId == 0L
     val isSubCategory get() = parentId != 0L
 
+    val emojiTitle
+        get() = "$emoji $title"
+
 
     private object Field{
         val ID = Field<Long>("id"){ error("id must not be null") }

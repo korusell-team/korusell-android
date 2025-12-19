@@ -1,23 +1,28 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.service)
     alias(libs.plugins.crashlitics)
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 val versionMajor = 1
-val versionMinor = 0 //max 9
+val versionMinor = 1 //max 9
 val versionPatch = 1 //max 9
-val versionBuild = 0 //max 99
+val versionBuild = 5 //max 99
+
+val props = loadLocalProperties(rootProject.file("local.properties"))
 
 android {
     signingConfigs {
         getByName("debug") {
-            storeFile = file("/home/duckrya/Projects/Android/keystores/debug.keystore")
-            keyAlias = "androiddebugkey"
-            storePassword = "android"
-            keyPassword = "android"
+            storeFile = file(props["debug.storeFile"] as String)
+            storePassword = props["debug.storePassword"] as String
+            keyAlias = props["debug.keyAlias"] as String
+            keyPassword = props["debug.keyPassword"] as String
         }
     }
     namespace = "net.alienminds.ethnogram"
@@ -30,7 +35,9 @@ android {
         versionCode = versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
         versionName = "${versionMajor}.${versionMinor}.${versionPatch} ($versionCode)"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        //Setup Maps props
+        buildConfigField("String", "mapsApiKey", "\"${props["maps.apiKey"] as String}\"")
+        manifestPlaceholders["mapsApiKey"] = props["maps.apiKey"] as String
     }
 
     buildTypes {
@@ -85,6 +92,8 @@ dependencies {
     implementation(libs.cloudy)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.ui.unit)
+
 
     //Time Formater
     implementation(libs.prettytime)
@@ -109,9 +118,23 @@ dependencies {
     //Permissions
     implementation(libs.accompanist.permissions)
 
+    //Link Preview
     implementation(libs.iquack.link.preview)
 
-    implementation(project(":app:service"))
+    // Google Maps
+    implementation(libs.maps.compose)
+    implementation(libs.maps.compose.utils)
+    implementation(libs.play.services.location)
+
+
+    // Phone number utils
+    implementation(libs.libphonenumber)
+
+    //Serialization
+    implementation(libs.kotlinx.serialization.json)
+
+    //WebView
+    implementation(libs.androidx.webkit)
 
     //Firebase
     implementation(libs.firebase.crashlytics.ndk)
@@ -120,4 +143,16 @@ dependencies {
     //Testing
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(project(":app:service"))
+
+}
+
+fun loadLocalProperties(file: File): Properties {
+    val properties = Properties()
+    if (file.exists()) {
+        file.inputStream().use { properties.load(it) }
+    } else {
+        throw GradleException("local.properties not found!")
+    }
+    return properties
 }

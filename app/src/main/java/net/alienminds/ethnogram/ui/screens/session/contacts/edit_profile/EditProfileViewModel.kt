@@ -19,8 +19,11 @@ import net.alienminds.ethnogram.service.data.entities.City
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.service.user.entities.UserSocialType
+import net.alienminds.ethnogram.service.user.entities.UserType
 import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
+import kotlin.text.get
+import kotlin.text.orEmpty
 
 class EditProfileViewModel: AppScreenModel() {
 
@@ -33,37 +36,40 @@ class EditProfileViewModel: AppScreenModel() {
 
     private val profile by userRepo.meFlow.onEach { updateField(it) }.asStateWithLoading(null)
 
-    private val cityIds = mutableStateListOf<Long>()
-    private val categoryIds = mutableStateListOf<Long>()
 
     private val addedImages = mutableStateListOf<String>()
     private val removedImages = mutableStateListOf<String>()
-
-    private val allCategories by dataRepo.getCategoriesFlow().asState(emptyList())
-    val allCities by dataRepo.getCitiesFlow().asState(emptyList())
-
-    var isPublic by mutableStateOf(false)
-    var isAvailablePhone by mutableStateOf(false)
-    val phone by derivedStateOf { profile?.phone?: authProfile?.phoneNumber.orEmpty() }
-    var name by mutableStateOf("")
-    var surname by mutableStateOf("")
-    var bio by mutableStateOf("")
-    var info by mutableStateOf("")
-
-    val linksMap = mutableStateMapOf<UserSocialType, String?>()
-
-    val cities by derivedStateOf { allCities.filter { ac ->
-        cityIds.any { ac.id == it }
-    } }
-    val categories by derivedStateOf { allCategories.filter { ac ->
-        categoryIds.any { ac.id == it }
-    } }
-
     val images by derivedStateOf {
         addedImages
             .plus(profile?.image.orEmpty())
             .filterNot { removedImages.contains(it) }
     }
+
+    var isPublic by mutableStateOf(false)
+    var isAvailablePhone by mutableStateOf(false)
+    val phone by derivedStateOf { profile?.phone?: authProfile?.phoneNumber.orEmpty() }
+    var type by mutableStateOf(UserType.PERSONAL)
+    var name by mutableStateOf("")
+    var surname by mutableStateOf("")
+    var address by mutableStateOf("")
+
+    private val categoryIds = mutableStateListOf<Long>()
+    val categories by derivedStateOf { allCategories.filter { ac ->
+        categoryIds.any { ac.id == it }
+    } }
+
+    private val cityIds = mutableStateListOf<Long>()
+    val cities by derivedStateOf { allCities.filter { ac ->
+        cityIds.any { ac.id == it }
+    } }
+
+    var bio by mutableStateOf("")
+    var info by mutableStateOf("")
+    val linksMap = mutableStateMapOf<UserSocialType, String?>()
+
+
+    private val allCategories by dataRepo.getCategoriesFlow().asState(emptyList())
+    val allCities by dataRepo.getCitiesFlow().asState(emptyList())
 
 
     private val isErrorAvatar by derivedStateOf { isPublic && images.isEmpty() }
@@ -72,17 +78,18 @@ class EditProfileViewModel: AppScreenModel() {
     val isErrorCategory by derivedStateOf { isPublic && categoryIds.isEmpty() }
 
     val edited by derivedStateOf {
-        addedImages.isNotEmpty() ||
-        removedImages.isNotEmpty() ||
+        addedImages.isNotEmpty() || removedImages.isNotEmpty() ||
         isPublic != (profile?.isPublic == true) ||
         isAvailablePhone != (profile?.phoneIsAvailable == true) ||
-        name != profile?.name ||
-        surname != profile?.surname ||
-        bio != profile?.bio ||
-        info != profile?.info ||
-        linksMap.any { it.value.orEmpty() != profile?.social?.socialMap?.get(it.key).orEmpty() } ||
+        type != (profile?.type ?: UserType.PERSONAL) ||
+        name != profile?.name.orEmpty() ||
+        surname != profile?.surname.orEmpty() ||
+        address != profile?.address.orEmpty() ||
+        categoryIds.compareIds(profile?.categories.orEmpty()).not() ||
         cityIds.compareIds(profile?.cities.orEmpty()).not() ||
-        categoryIds.compareIds(profile?.categories.orEmpty()).not()
+        bio != profile?.bio.orEmpty() ||
+        info != profile?.info.orEmpty() ||
+        linksMap.any { it.value.orEmpty() != profile?.social?.socialMap?.get(it.key).orEmpty() }
     }
 
     private fun List<Long>.compareIds(
@@ -115,19 +122,22 @@ class EditProfileViewModel: AppScreenModel() {
     private fun updateField(user: User?) {
         isPublic = user?.isPublic == true
         isAvailablePhone = user?.phoneIsAvailable == true
+        type = user?.type?: UserType.PERSONAL
         name = user?.name.orEmpty()
         surname = user?.surname.orEmpty()
+        address = user?.address.orEmpty()
+
+        categoryIds.clear()
+        categoryIds.addAll(user?.categories.orEmpty())
+
+        cityIds.clear()
+        cityIds.addAll(user?.cities.orEmpty())
+
         bio = user?.bio.orEmpty()
         info = user?.info.orEmpty()
 
         linksMap.clear()
         linksMap.putAll(profile?.social?.socialMap.orEmpty())
-
-        cityIds.clear()
-        cityIds.addAll(user?.cities.orEmpty())
-
-        categoryIds.clear()
-        categoryIds.addAll(user?.categories.orEmpty())
     }
 
     fun addImage(
@@ -209,8 +219,10 @@ class EditProfileViewModel: AppScreenModel() {
         Pair(InputField(User.Field.PHONE_IS_AVAILABLE, isAvailablePhone),
             profile?.phoneIsAvailable == true
         ),
+        Pair(InputField(User.Field.TYPE, type), profile?.type ?: UserType.PERSONAL),
         Pair(InputField(User.Field.NAME, name), profile?.name.orEmpty()),
         Pair(InputField(User.Field.SURNAME, surname), profile?.surname.orEmpty()),
+        Pair(InputField(User.Field.ADDRESS, address), profile?.address.orEmpty()),
         Pair(InputField(User.Field.BIO, bio), profile?.bio.orEmpty()),
         Pair(InputField(User.Field.INFO, info), profile?.info.orEmpty()),
         Pair(InputField(User.Field.CATEGORIES, categoryIds), profile?.categories.orEmpty()),

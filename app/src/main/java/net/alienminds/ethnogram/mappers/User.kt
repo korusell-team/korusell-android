@@ -3,12 +3,14 @@ package net.alienminds.ethnogram.mappers
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.service.user.entities.UserSocial
 import net.alienminds.ethnogram.service.user.entities.UserSocialType
+import net.alienminds.ethnogram.service.user.entities.UserType
 import net.alienminds.ethnogram.utils.openLinkExternal
 import net.alienminds.ethnogram.utils.openLinkInApp
 
@@ -129,21 +131,14 @@ fun UserSocialType.openInApp(
     }
 }
 
-//fun User.Link.open(context: Context) = with(context){
-//    when(type){
-//        UserSocialType.INSTAGRAM -> openInstagram(value)
-//        UserSocialType.TELEGRAM -> openTelegram(value)
-//        UserSocialType.YOUTUBE -> openYoutube(value)
-//        UserSocialType.WEB_SITE -> openWebLink(value)
-//        UserSocialType.FACEBOOK -> openFacebook(value)
-//        UserSocialType.TIKTOK -> openTiktok(value)
-//        UserSocialType.WHATS_APP -> openWhatsApp(value)
-//        UserSocialType.LINKED_IN -> openLinkedIn(value)
-//        UserSocialType.THREADS -> openThreads(value)
-//        UserSocialType.TWITTER -> openTwitter(value)
-//        else -> copyToClipboard(type.name, value)
-//    }
-//}
+val UserType.titleId
+    @StringRes get() = when(this){
+        UserType.PERSONAL -> R.string.personal_profile
+        UserType.BUSINESS -> R.string.business_profile
+    }
+
+val UserType.title
+    @Composable get() = stringResource(titleId)
 
 
 private fun Context.openTwitter(value: String) = openLinkInApp(

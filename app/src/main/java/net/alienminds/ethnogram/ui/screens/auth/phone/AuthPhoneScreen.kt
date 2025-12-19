@@ -37,6 +37,7 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
@@ -74,8 +75,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .fillMaxWidth(),
             error = vm.errorMessage,
             loading = vm.loading,
-            phone = vm.phone,
-            onPhoneChange = { vm.phone = it },
+            phone = vm.phoneFieldValue,
+            onPhoneChange = { vm.phoneFieldValue = it },
             onSignInGuest = { vm.signInGuest(navigator) }
         )
 
@@ -84,7 +85,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
                 .navigationBarsPadding()
                 .padding(horizontal = 32.dp)
                 .fillMaxWidth(),
-            enabled = vm.phone.length >= 9,
+            enabled = UniversalPhoneVisualTransformation.isPossiblePhoneNumber(vm.phoneFieldValue.text),
             loading = vm.loading,
             onNext = { vm.signIn(context, navigator) }
         )
@@ -96,8 +97,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         modifier: Modifier = Modifier,
         error: String?,
         loading: Boolean,
-        phone: String,
-        onPhoneChange: (String) -> Unit,
+        phone: TextFieldValue,
+        onPhoneChange: (TextFieldValue) -> Unit,
         onSignInGuest: () -> Unit
     ) = Column(
         modifier = modifier
@@ -121,9 +122,7 @@ internal class AuthPhoneScreen: PageTransitionScreen {
 
         TextField(
             value = phone,
-            onValueChange = { newValue ->
-                onPhoneChange(newValue.filter { it.isDigit() }.take(12))
-            },
+            onValueChange = onPhoneChange,
             modifier = Modifier
                 .shimmerEffect(loading, MaterialTheme.shapes.large)
                 .fillMaxWidth(),

@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -46,6 +45,7 @@ import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.AppAlertDialog
 import net.alienminds.ethnogram.ui.extentions.custom.dialogs.rememberAppDialogState
 import net.alienminds.ethnogram.ui.screens.session.NavBarScreen
+import net.alienminds.ethnogram.ui.screens.session.contacts.delete.DeleteAccountScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 
@@ -54,7 +54,7 @@ object AccountScreen: NavBarScreen {
     private fun readResolve(): Any = AccountScreen
 
     override val title: @Composable (() -> String)
-        get() = { stringResource(R.string.my_profile) }
+        get() = { stringResource(R.string.nav_profile) }
 
     override val icon: @Composable (() -> Painter)
         get() = { painterResource(R.drawable.ic_account) }
@@ -79,27 +79,16 @@ object AccountScreen: NavBarScreen {
             .build()
 
         val logoutDialogState = rememberAppDialogState()
-        val deleteAccountDialogState = rememberAppDialogState()
 
         AppAlertDialog(
             state = logoutDialogState,
             title = stringResource(R.string.logout),
-            text = "Вы действительно хотите выйти из аккаунта?",
+            text = stringResource(R.string.confirm_exit_app),
             confirmColor = MaterialTheme.colorScheme.error,
             confirmText = stringResource(R.string.logout),
             dismissText = stringResource(R.string.cancel),
             onConfirm = { vm.logout(navigator) }
         )
-        AppAlertDialog(
-            state = deleteAccountDialogState,
-            title = stringResource(R.string.logout),
-            text = "Вы действительно хотите удалить свой аккаунт? Это действие будет невозможно отменить.",
-            confirmColor = MaterialTheme.colorScheme.error,
-            confirmText = stringResource(R.string.logout),
-            dismissText = stringResource(R.string.cancel),
-            onConfirm = { vm.deleteAccount(navigator) }
-        )
-
 
         Text(
             modifier = Modifier
@@ -107,8 +96,8 @@ object AccountScreen: NavBarScreen {
                 .align(Alignment.Start)
                 .padding(16.dp),
             text = stringResource(R.string.my_profile),
-            style = MaterialTheme.typography.titleMedium,
-            color = AppColor.gray900,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
@@ -185,7 +174,7 @@ object AccountScreen: NavBarScreen {
                         title = stringResource(R.string.delete_account),
                         description = stringResource(R.string.delete_account_descr),
                         accent = MaterialTheme.colorScheme.error,
-                        onClick = { deleteAccountDialogState.show() }
+                        onClick = { navigator?.push(DeleteAccountScreen) }
                     )
                 }
             }
@@ -249,12 +238,8 @@ object AccountScreen: NavBarScreen {
         content: @Composable ColumnScope.() -> Unit
     ) = Column(
         modifier = modifier
-            .shadow(
-                elevation = 4.dp,
-                shape = MaterialTheme.shapes.medium
-            )
             .clip(MaterialTheme.shapes.medium)
-            .background(AppColor.gray50),
+            .background(MaterialTheme.colorScheme.surfaceContainerLow),
         content = content
     )
 
@@ -266,12 +251,8 @@ object AccountScreen: NavBarScreen {
         onClick: () -> Unit
     ) = Row(
         modifier = modifier
-            .shadow(
-                elevation = 4.dp,
-                shape = MaterialTheme.shapes.medium
-            )
             .clip(MaterialTheme.shapes.medium)
-            .background(AppColor.gray50)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable { onClick() }
             .padding(
                 horizontal = 16.dp,

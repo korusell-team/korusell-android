@@ -38,12 +38,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
+import net.alienminds.ethnogram.BuildConfig
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.ui.extentions.custom.Avatar
 import net.alienminds.ethnogram.ui.extentions.transitions.PageTransitionScreen
@@ -52,6 +54,7 @@ import net.alienminds.ethnogram.ui.screens.session.account.AccountScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.list.ContactsListScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.list.FeedListScreen
+import net.alienminds.ethnogram.ui.screens.session.map.MapScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import org.koin.compose.koinInject
 import org.koin.core.component.KoinComponent
@@ -61,7 +64,7 @@ class SessionScreen: Screen {
 
     @Composable
     override fun Content() {
-        Navigator(FeedListScreen){ navigator ->
+        Navigator(MapScreen){ navigator ->
             val showNavBar = navigator.lastItemOrNull is NavBarScreen
             Column {
                 SlidePageTransition(
@@ -108,7 +111,7 @@ class SessionScreen: Screen {
             .shadow(4.dp)
             .fillMaxWidth()
             .heightIn(48.dp)
-            .background(AppColor.brown50)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .navigationBarsPadding()
             .padding(
                 horizontal = 8.dp,
@@ -159,7 +162,7 @@ class SessionScreen: Screen {
                             .border(
                                 width = 1.dp,
                                 color = when(selected) {
-                                    true -> MaterialTheme.colorScheme.primary
+                                    true -> MaterialTheme.colorScheme.secondary
                                     false -> MaterialTheme.colorScheme.outline
                                 },
                                 shape = CircleShape
@@ -184,7 +187,8 @@ class SessionScreen: Screen {
             Text(
                 text = item.title(),
                 style = MaterialTheme.typography.labelSmall,
-                color = contentColor
+                color = contentColor,
+                textAlign = TextAlign.Center
             )
 
         }
@@ -193,6 +197,7 @@ class SessionScreen: Screen {
     companion object{
         private val navBarScreens = listOf<NavBarScreen>(
             FeedListScreen,
+            MapScreen,
             ContactsListScreen,
             AccountScreen
         )

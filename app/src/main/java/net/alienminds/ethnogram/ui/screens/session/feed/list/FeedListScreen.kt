@@ -137,8 +137,8 @@ internal object FeedListScreen: NavBarScreen {
                                 horizontal = 16.dp
                             ),
                         text = title(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AppColor.gray900,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
