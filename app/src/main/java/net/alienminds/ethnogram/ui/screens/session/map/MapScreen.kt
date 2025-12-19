@@ -125,7 +125,7 @@ object MapScreen: NavBarScreen {
         get() = 1
 
     override val title: @Composable (() -> String)
-        get() = { stringResource(R.string.search) }
+        get() = { stringResource(R.string.nearby) }
 
     override val icon: @Composable (() -> Painter)
         get() = { painterResource(R.drawable.ic_map) }
@@ -414,7 +414,7 @@ object MapScreen: NavBarScreen {
             }
         }
 
-        if(vm.currentClusterId != null){
+        if(vm.currentClusterId != null || vm.currentCategory != null || vm.currentSubCategory != null){
             items(vm.sheetItems){ user ->
                 UserListItem(
                     modifier = Modifier.fillMaxWidth(),
@@ -423,6 +423,7 @@ object MapScreen: NavBarScreen {
                     allCategories = vm.allCategories,
                     allCities = vm.allCities,
                     clickable = vm.isAnonymous.not(),
+                    ignorePlus = true,
                     onChangeFavorite = { isFavorite ->
                         user.uid?.let { userId ->
                             vm.changeFavorite(userId, isFavorite)

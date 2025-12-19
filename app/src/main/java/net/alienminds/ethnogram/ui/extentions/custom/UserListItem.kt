@@ -40,6 +40,7 @@ fun UserListItem(
     allCategories: List<Category>,
     allCities: List<City>,
     clickable: Boolean,
+    ignorePlus: Boolean = false,
     onChangeFavorite: (Boolean) -> Unit,
     onClick: () -> Unit
 ){
@@ -81,7 +82,7 @@ fun UserListItem(
                         contentScale = ContentScale.Crop,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     )
-                    if (user.isSponsored){
+                    if (user.isSponsored && ignorePlus.not()){
                         CircularTextBadge(
                             modifier = Modifier.padding(vertical = 8.dp),
                             text = stringResource(R.string.badge_plus),

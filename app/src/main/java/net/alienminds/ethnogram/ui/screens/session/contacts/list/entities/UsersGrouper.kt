@@ -147,7 +147,6 @@ internal class UserGrouper(
             title = ctx.getString(R.string.active_users),
             users = sortedByDescending { it.updated }
                 .take(15)
-                .sortedByDescending { it.isSponsored }
         )
     }
 

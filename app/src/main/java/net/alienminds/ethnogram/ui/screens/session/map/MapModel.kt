@@ -91,6 +91,12 @@ internal class MapModel(
             ).filterInBounds(projection)
         }.filter { it.isSponsored && it.isLocationAvailable }
             .sortedByDescending { it.likes.size }
+            .let {
+                when(isDefault){
+                    true -> it.take(10)
+                    false -> it
+                }
+            }
     }
 
     fun selectCluster(cluster: Cluster<UserClusterItem>?): Boolean{
