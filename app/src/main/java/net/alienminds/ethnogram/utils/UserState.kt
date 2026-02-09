@@ -32,10 +32,13 @@ class UserStateProvider(
 
 }
 
-internal fun UserState.getScreen() = when(this){
+internal fun UserState.getScreen(checkProfileComplete: Boolean = true) = when(this){
     UserState.FirstLaunch -> OnboardingScreen()
     UserState.Unauthorized -> AuthScreen()
-    UserState.ProfileNotCompleted -> ProfileSetupScreen()
+    UserState.ProfileNotCompleted -> when(checkProfileComplete) {
+        true -> ProfileSetupScreen()
+        false -> SessionScreen()
+    }
     UserState.Authorized -> SessionScreen()
 }
 

@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -12,7 +13,7 @@ plugins {
 val versionMajor = 1
 val versionMinor = 1 //max 9
 val versionPatch = 1 //max 9
-val versionBuild = 7 //max 99
+val versionBuild = 9 //max 99
 
 val props = loadLocalProperties(rootProject.file("local.properties"))
 
@@ -63,8 +64,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true

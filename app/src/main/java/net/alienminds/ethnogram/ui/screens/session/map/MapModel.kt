@@ -112,6 +112,7 @@ internal class MapModel(
 
     fun selectUser(user: User): Boolean{
         val userId = user.uid?: return false
+        if(isAnonymous) return true
         navigator.push(ProfileScreen(userId))
         return true
     }

@@ -72,7 +72,6 @@ class ProfileSetupScreen(
         val navigator = LocalNavigator.rootOrThrow
         val vm = rememberScreenModel { ProfileSetupViewModel() }
         val alertNotSave = rememberAppDialogState()
-        var loadState by remember { mutableStateOf(false) }
 
         val photoPicker = rememberPhotoPicker(
             maxPhoto = AppConst.MAX_IMAGES - vm.images.size,
@@ -84,7 +83,7 @@ class ProfileSetupScreen(
 
 
         SquareTextCircle(
-            modifier = Modifier.shimmerEffect(loadState, CircleShape),
+            modifier = Modifier.shimmerEffect(vm.loading, CircleShape),
             images = vm.images,
             onClick = photoPicker::launch
         )
@@ -104,14 +103,14 @@ class ProfileSetupScreen(
         Spacer(Modifier.size(8.dp))
 
         InfoField(
-            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            modifier = Modifier.shimmerEffect(vm.loading, MaterialTheme.shapes.large),
             value = vm.name.orEmpty(),
             onValueChange = { vm.name = it.take(15) },
             placeholder = stringResource(R.string.input_name)
         )
         Spacer(Modifier.size(8.dp))
         InfoField(
-            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            modifier = Modifier.shimmerEffect(vm.loading, MaterialTheme.shapes.large),
             value = vm.surname.orEmpty(),
             onValueChange = { vm.surname = it.take(15) },
             placeholder = stringResource(R.string.input_surname)
@@ -122,7 +121,7 @@ class ProfileSetupScreen(
             stringResource(id = R.string.your_bio))
         Spacer(Modifier.size(8.dp))
         InfoField(
-            modifier = Modifier.shimmerEffect(loadState, MaterialTheme.shapes.large),
+            modifier = Modifier.shimmerEffect(vm.loading, MaterialTheme.shapes.large),
             value = vm.bio.orEmpty(),
             onValueChange = { vm.bio = it.take(80) },
             placeholder = stringResource(R.string.your_bio_description)
@@ -137,26 +136,12 @@ class ProfileSetupScreen(
         Button(
             modifier = Modifier
                 .padding(vertical = 24.dp)
-                .shimmerEffect(loadState, MaterialTheme.shapes.large)
-                .shadow(
-                    elevation = 0.dp,
-                    shape = MaterialTheme.shapes.large
-                )
+                .shimmerEffect(vm.loading, MaterialTheme.shapes.large)
                 .fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             onClick = {
-                if (!loadState){
-                    loadState = true
-                    when (vm.canSave) {
-                        true -> {
-                            vm.saveUser{
-                                navigator.replaceAll(SessionScreen())
-                                loadState = false
-                            }
-                        }
-
-                        false -> alertNotSave.show()
-                    }
+                vm.saveUser {
+                    navigator.replaceAll(SessionScreen())
                 }
             },
             colors = ButtonDefaults.buttonColors(
@@ -166,7 +151,10 @@ class ProfileSetupScreen(
         ) {
             Text(
                 modifier = Modifier.padding(vertical = 8.dp),
-                text = stringResource(R.string.save),
+                text = when(vm.isSkip) {
+                    true -> stringResource(R.string.skip)
+                    false -> stringResource(R.string.save)
+                },
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -266,9 +254,6 @@ class ProfileSetupScreen(
             onValueChange = onValueChange,
             modifier = modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Words
-            ),
             textStyle = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Medium,
                 color = AppColor.gray900

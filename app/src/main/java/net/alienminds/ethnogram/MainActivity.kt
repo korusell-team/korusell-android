@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LaunchedEffect(Unit) {
                 val userState = userStateProvider.getUserState()
-                suitableScreen = userState.getScreen()
+                suitableScreen = userState.getScreen(false)
             }
             suitableScreen?.let {
                 RootContent(it, updateManager)

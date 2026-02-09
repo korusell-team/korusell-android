@@ -39,31 +39,43 @@ class ProfileSetupViewModel: AppScreenModel() {
     }
 
 
-    private val isErrorAvatar by derivedStateOf {images.isEmpty() }
-    private val isErrorName by derivedStateOf { name.isNullOrEmpty() }
-    private val isErrorSurname by derivedStateOf { surname.isNullOrEmpty() }
+//    private val isErrorAvatar by derivedStateOf {images.isEmpty() }
+//    private val isErrorName by derivedStateOf { name.isNullOrEmpty() }
+//    private val isErrorSurname by derivedStateOf { surname.isNullOrEmpty() }
 
-
-    val canSave by derivedStateOf {
-        isErrorName.not() &&
-        isErrorSurname.not() &&
-        isErrorAvatar.not()
+    val isSkip by derivedStateOf {
+        name?.trim().isNullOrEmpty() &&
+        surname?.trim().isNullOrEmpty() &&
+        images.isEmpty()
     }
+
+//    val canSave by derivedStateOf {
+//        isErrorName.not() &&
+//        isErrorSurname.not() &&
+//        isErrorAvatar.not()
+//    }
 
     fun addImage(
         photos: List<Uri>,
     ) = addedImages.addAll(0, photos.map { it.toString() })
 
 
-    fun saveUser(onSuccess: () -> Unit) = launchWithLoading {
-        val fields = getEditedFields().run {
-            if (addedImages.isNotEmpty() || removedImages.isNotEmpty()) {
-                plus(InputField(User.Field.IMAGE, applyImages()))
-            } else this
-        }
-        val result = userRepo.updateMe(values = fields)
-        if (result.isSuccess && result.getOrNull() == true) {
+    fun saveUser(onSuccess: () -> Unit){
+        if (loading) return
+        if (isSkip) {
             onSuccess()
+            return
+        }
+        launchWithLoading {
+            val fields = getEditedFields().run {
+                if (addedImages.isNotEmpty() || removedImages.isNotEmpty()) {
+                    plus(InputField(User.Field.IMAGE, applyImages()))
+                } else this
+            }
+            val result = userRepo.updateMe(values = fields)
+            if (result.isSuccess && result.getOrNull() == true) {
+                onSuccess()
+            }
         }
     }
 
