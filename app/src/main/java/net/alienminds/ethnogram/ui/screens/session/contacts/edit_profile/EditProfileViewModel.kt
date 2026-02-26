@@ -74,7 +74,6 @@ class EditProfileViewModel: AppScreenModel() {
 
     private val isErrorAvatar by derivedStateOf { isPublic && images.isEmpty() }
     val isErrorName by derivedStateOf { isPublic && name.isEmpty() }
-    val isErrorSurname by derivedStateOf { isPublic && surname.isEmpty() }
     val isErrorCategory by derivedStateOf { isPublic && categoryIds.isEmpty() }
 
     val edited by derivedStateOf {
@@ -95,13 +94,13 @@ class EditProfileViewModel: AppScreenModel() {
     private fun List<Long>.compareIds(
         list: List<Long>,
     ) = size == list.size && all { a ->
+
         list.any { it == a }
     }
 
     val canSave by derivedStateOf {
         edited &&
         isErrorName.not() &&
-        isErrorSurname.not() &&
         isErrorCategory.not() &&
         isErrorAvatar.not()
     }

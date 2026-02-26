@@ -14,10 +14,12 @@
     <string name="auth_phone_description">Войдите или зарегистрируйтесь указав номер телефона</string>
     <string name="telegram_placeholder">имя пользователя</string>
     <string name="phone_placeholder">+XXX XX XX XX XX</string>
-    <string name="terms_objectionable_text">"Политикой запрещенного контента "</string>
+    <string name="terms_objectionable_text">"Политикой запрещенного контента"</string>
     <string name="terms_objectionable_link">https://ethnogram.alienminds.net/prohibited-content.html</string>
     <string name="terms_confidentiality_text">Политикой конфеденциальности</string>
     <string name="terms_confidentiality_link">https://ethnogram.alienminds.net/privacy-policy.html</string>
+    <string name="terms_child_safety_text">Политика безопасности детей (CSAM / CSAE)</string>
+    <string name="terms_child_safety_link">https://ethnogram.alienminds.net/child-safety</string>
     <string name="auth_terms_1">"Авторизуясь, Вы соглашаетесь с "</string>
     <string name="auth_terms_2">"и с "</string>
     <string name="auth_otp_description">Введите шестизначный код полученный в SMS</string>
@@ -133,6 +135,7 @@
     <string name="updates">Обновления</string>
     <string name="privacy_police_descr">Правила и условия, приватность</string>
     <string name="prohibited_content_policy_descr">Наши стандарты и требования к материалам</string>
+    <string name="child_safety_policy_descr">Стандарты безопасности детей</string>
     <string name="updates_descr">Проверить новую версию\nТекущая версия: %1$s</string>
     <string name="logout_with_account">Выйти из аккаунта</string>
     <string name="delete_account">Удаление аккаунта</string>

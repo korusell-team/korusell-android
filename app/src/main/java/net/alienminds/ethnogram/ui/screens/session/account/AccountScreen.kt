@@ -126,6 +126,9 @@ object AccountScreen: NavBarScreen {
                 val privacyPoliceTitle = stringResource(R.string.privacy_police)
                 val prohibitedContentPolicyUrl = stringResource(R.string.terms_objectionable_link).toUri()
                 val prohibitedContentPolicyTitle = stringResource(R.string.prohibited_content_policy)
+                val childSafetyUrl = stringResource(R.string.terms_child_safety_link).toUri()
+                val childSafetyTitle = stringResource(R.string.child_safety_policy_descr)
+
                 ClickableItem(
                     icon = painterResource(R.drawable.ic_back_hand),
                     title = privacyPoliceTitle,
@@ -138,6 +141,13 @@ object AccountScreen: NavBarScreen {
                     title = prohibitedContentPolicyTitle,
                     description = stringResource(R.string.prohibited_content_policy_descr),
                     onClick = { tabsIntent.launchUrl(ctx, prohibitedContentPolicyUrl) }
+                )
+                HorizontalDivider()
+                ClickableItem(
+                    icon = painterResource(R.drawable.ic_child_care),
+                    title = childSafetyTitle,
+                    description = stringResource(R.string.terms_child_safety_text),
+                    onClick = { tabsIntent.launchUrl(ctx, childSafetyUrl) }
                 )
                 HorizontalDivider()
                 ClickableItem(

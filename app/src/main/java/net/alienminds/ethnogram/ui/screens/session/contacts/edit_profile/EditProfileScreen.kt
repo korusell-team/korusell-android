@@ -228,7 +228,6 @@ class EditProfileScreen: PageTransitionScreen {
                 surname = vm.surname,
                 type = vm.type,
                 isErrorName = vm.isErrorName,
-                isErrorSurname = vm.isErrorSurname,
                 loading = vm.loading,
                 onChange = { name, surname ->
                     vm.name = name.take(30)
@@ -645,7 +644,6 @@ class EditProfileScreen: PageTransitionScreen {
         type: UserType,
         loading: Boolean,
         isErrorName: Boolean,
-        isErrorSurname: Boolean,
         onChange: (name: String, surname: String) -> Unit
     ) = Column(
         modifier = modifier
@@ -684,7 +682,6 @@ class EditProfileScreen: PageTransitionScreen {
                         value = surname,
                         onValueChange = { onChange(name, it) },
                         label = { Text(stringResource(R.string.surname)) },
-                        isError = isErrorSurname,
                         enabled = loading.not(),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words

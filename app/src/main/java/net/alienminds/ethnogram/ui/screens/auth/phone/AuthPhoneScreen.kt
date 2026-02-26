@@ -193,6 +193,9 @@ internal class AuthPhoneScreen: PageTransitionScreen {
             text = buildAnnotatedString {
                 append(stringResource(R.string.auth_terms_1))
                 appendTermsLink(TermsLinks.OBJECTIONABLE_CONTENT, ctx)
+                append(", ")
+                appendTermsLink(TermsLinks.CHILD_SAFETY, ctx)
+                append(" ")
                 append(stringResource(R.string.auth_terms_2))
                 appendTermsLink(TermsLinks.CONFIDENTIALITY, ctx)
             },
@@ -238,6 +241,8 @@ internal class AuthPhoneScreen: PageTransitionScreen {
         @param:StringRes val textId: Int
     ){
         OBJECTIONABLE_CONTENT(R.string.terms_objectionable_link, R.string.terms_objectionable_text),
-        CONFIDENTIALITY(R.string.terms_confidentiality_link, R.string.terms_confidentiality_text)
+        CONFIDENTIALITY(R.string.terms_confidentiality_link, R.string.terms_confidentiality_text),
+        CHILD_SAFETY(R.string.terms_child_safety_link, R.string.terms_child_safety_text)
+
     }
 }

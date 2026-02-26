@@ -106,7 +106,7 @@ class ProfileViewModel(
 
     private suspend fun List<UserFeedback>.fetchAuthors(){
         val authorIds = mapNotNull { it.fromUserId }.toTypedArray()
-        authors = userRepo.getAuthors(authorIds = authorIds).getOrNull().orEmpty() //тут падает
+        authors = userRepo.getAuthors(authorIds = authorIds).getOrNull()?: emptyMap()
     }
 
 
