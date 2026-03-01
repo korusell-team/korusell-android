@@ -2,6 +2,7 @@ package net.alienminds.ethnogram.ui
 
 import android.Manifest
 import android.os.Build
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -37,6 +38,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import net.alienminds.ethnogram.service.utils.FCMService
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
+import net.alienminds.ethnogram.ui.screens.session.messages.chat.ChatScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.ui.theme.EthnogramTheme
 import net.alienminds.ethnogram.utils.InAppUpdateManager
@@ -55,17 +57,36 @@ internal fun RootContent(
     val intent by IntentProvider.intent.collectAsState()
     LaunchedEffect(intent, currentNavigator) {
         currentNavigator?.let { navigator ->
-            intent?.data?.let { intent ->
-                when(intent.path){
-                    "/profile" -> {
-                        val id = intent.getQueryParameter("uid")
+            intent?.data?.let { uri ->
+                when{
+                    uri.path == "/profile" -> {
+                        val id = uri.getQueryParameter("uid")
                         val targetScreen = ProfileScreen(id)
                         if(navigator.lastItemOrNull?.key != targetScreen.key){
-                            navigator.push(ProfileScreen(id))
+                            navigator.push(targetScreen)
+                        }
+                        IntentProvider.consumedIntent()
+                    }
+                    uri.getQueryParameter("chatId") != null -> {
+                        val id = uri.getQueryParameter("chatId")?: run {
+                            Log.e("RootScreen", "No chatId in intent")
+                            IntentProvider.consumedIntent()
+                            return@let
+                        }
+                        val targetScreen = ChatScreen(id)
+                        if(navigator.lastItemOrNull?.key != targetScreen.key){
+                            navigator.push(targetScreen)
                         }
                         IntentProvider.consumedIntent()
                     }
                 }
+            }
+            intent?.getStringExtra("chatId")?.let{ id ->
+                val targetScreen = ChatScreen(id)
+                if(navigator.lastItemOrNull?.key != targetScreen.key){
+                    navigator.push(targetScreen)
+                }
+                IntentProvider.consumedIntent()
             }
         }
     }

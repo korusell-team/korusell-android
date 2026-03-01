@@ -10,10 +10,18 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.alienminds.ethnogram.data.model.core.ObserveState
 import org.koin.core.component.KoinComponent
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -84,6 +92,30 @@ abstract class AppScreenModel: ScreenModel, KoinComponent {
     protected fun startLoading(runId: String){ loadingStack.add(runId) }
     protected fun stopLoading(runId: String){ loadingStack.remove(runId) }
     protected fun isLoading(runId: String){ loadingStack.contains(runId) }
+
+
+    protected fun <T> Flow<T>.stateInScreenModel(
+        initial: T
+    ): StateFlow<T> =
+        stateIn(
+            scope = screenModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = initial
+        )
+
+    protected fun <T> Flow<ObserveState<T>>.data(): Flow<T> =
+        filterIsInstance<ObserveState.Data<T>>()
+            .mapNotNull { it.value.getOrNull() }
+            .distinctUntilChanged()
+
+    protected fun <T> Flow<ObserveState<T>>.errors(): Flow<Throwable> =
+        filterIsInstance<ObserveState.Data<T>>()
+            .mapNotNull { it.value.exceptionOrNull() }
+            .distinctUntilChanged()
+
+
+    protected fun <T> Flow<ObserveState<T>>.loading(): Flow<Boolean> =
+        map { it.isLoading }.distinctUntilChanged()
 
 
 

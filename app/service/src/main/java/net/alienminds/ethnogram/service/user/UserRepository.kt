@@ -27,6 +27,7 @@ import net.alienminds.ethnogram.service.base.entities.InputField
 import net.alienminds.ethnogram.service.feed.entities.Author
 import net.alienminds.ethnogram.service.user.entities.User
 import net.alienminds.ethnogram.service.user.entities.UserType
+import net.alienminds.ethnogram.service.utils.FCMService
 import net.alienminds.ethnogram.service.utils.FirestoreProvider
 import java.util.UUID
 import kotlin.collections.associate
@@ -48,11 +49,25 @@ class UserRepository internal constructor(
     
     init {
         activateUser()
-        authRepository.logoutFlow.onEach { 
+        initPush()
+        authRepository.logoutFlow.onEach {
+            unsubscribeUserTopic()
             isSyncMe = false
             isSyncPublic = false
             syncedUsers.clear()
         }.launchIn(ioScope)
+    }
+
+    private fun initPush() = ioScope.launch{
+        runCatching {
+            FCMService.subscribeUserTopic(getMyId())
+        }
+    }
+
+    private fun unsubscribeUserTopic() = ioScope.launch{
+        runCatching {
+            FCMService.unsubscribeUserTopic(getMyId())
+        }
     }
 
     private fun activateUser() = ioScope.launch{

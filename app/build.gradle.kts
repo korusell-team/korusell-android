@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+    implementation(libs.kotlinx.datetime)
 
     //Compose
     implementation(libs.androidx.activity.compose)
@@ -147,6 +148,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(project(":app:service"))
+    implementation(project(":app:data"))
 
 }
 

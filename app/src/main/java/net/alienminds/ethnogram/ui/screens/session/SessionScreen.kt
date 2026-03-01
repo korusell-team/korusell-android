@@ -55,6 +55,7 @@ import net.alienminds.ethnogram.ui.screens.session.contacts.list.ContactsListScr
 import net.alienminds.ethnogram.ui.screens.session.contacts.profile.ProfileScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.list.FeedListScreen
 import net.alienminds.ethnogram.ui.screens.session.map.MapScreen
+import net.alienminds.ethnogram.ui.screens.session.messages.chat_list.ChatListScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import org.koin.compose.koinInject
 import org.koin.core.component.KoinComponent
@@ -146,7 +147,7 @@ class SessionScreen: Screen {
             modifier = modifier
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { onClick() }
-                .padding(horizontal = 12.dp)
+//                .padding(horizontal = 12.dp)
                 .padding(top = 4.dp, bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -188,7 +189,8 @@ class SessionScreen: Screen {
                 text = item.title(),
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
 
         }
@@ -199,6 +201,7 @@ class SessionScreen: Screen {
             FeedListScreen,
             MapScreen,
             ContactsListScreen,
+            ChatListScreen,
             AccountScreen
         )
     }

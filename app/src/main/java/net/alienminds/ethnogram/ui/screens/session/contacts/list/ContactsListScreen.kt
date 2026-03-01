@@ -76,7 +76,7 @@ object ContactsListScreen: NavBarScreen {
     private fun readResolve(): Any = ContactsListScreen
 
     override val position: Int
-        get() = 1
+        get() = 2
 
     override val title: @Composable (() -> String)
         get() = { stringResource(R.string.contacts) }

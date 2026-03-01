@@ -63,7 +63,7 @@ object AccountScreen: NavBarScreen {
         get() = { painterResource(R.drawable.ic_account_filled) }
 
     override val position: Int
-        get() = 1
+        get() = 4
 
     @Composable
     override fun Content() = Column(

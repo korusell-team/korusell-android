@@ -4,10 +4,15 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.Navigator
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import net.alienminds.ethnogram.data.model.core.FetchMode
+import net.alienminds.ethnogram.data.model.core.FetchState
+import net.alienminds.ethnogram.data.repository.MessageRepository
 import net.alienminds.ethnogram.service.auth.AuthRepository
 import net.alienminds.ethnogram.service.data.DataRepository
 import net.alienminds.ethnogram.service.feed.entities.Author
@@ -18,6 +23,7 @@ import net.alienminds.ethnogram.ui.extentions.root
 import net.alienminds.ethnogram.ui.screens.auth.AuthScreen
 import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
+import org.koin.java.KoinJavaComponent.inject
 
 class ProfileViewModel(
     private val userId: String?,
@@ -28,6 +34,8 @@ class ProfileViewModel(
     private val userRepo by inject<UserRepository>()
     private val dataRepo by inject<DataRepository>()
     private val feedbackRepository by inject<FeedbackRepository>()
+    private val messageRepository by inject<MessageRepository>()
+
 
     private val allCities by dataRepo.getCitiesFlow().asState(emptyList())
     private val allCategories by dataRepo.getCategoriesFlow().asState(emptyList())
@@ -73,6 +81,17 @@ class ProfileViewModel(
     val isFavorite by derivedStateOf { user?.likes?.any { it == myId } == true }
 
 
+    fun getChatId(
+        onSuccess: (chatID: String) -> Unit
+    ){
+        screenModelScope.launch {
+            userId?.let {
+                messageRepository.getChatId(it)
+                    .get(FetchMode.CacheFirst)
+                    .onSuccess(onSuccess)
+            }
+        }
+    }
 
     fun changeFavorite(value: Boolean) = launchWithLoading{
         user?.uid?.let {

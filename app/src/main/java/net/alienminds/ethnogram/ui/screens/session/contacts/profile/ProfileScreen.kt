@@ -113,6 +113,7 @@ import net.alienminds.ethnogram.ui.screens.session.contacts.all_feedbacks.AllFee
 import net.alienminds.ethnogram.ui.screens.session.contacts.edit_profile.EditProfileScreen
 import net.alienminds.ethnogram.ui.screens.session.contacts.send_feedback.SendFeedbackScreen
 import net.alienminds.ethnogram.ui.screens.session.feed.components.AuthorContent
+import net.alienminds.ethnogram.ui.screens.session.messages.chat.ChatScreen
 import net.alienminds.ethnogram.ui.theme.AppColor
 import net.alienminds.ethnogram.utils.IntentActions
 import net.alienminds.ethnogram.utils.openLinkExternal
@@ -197,7 +198,6 @@ class ProfileScreen(
                         .fillMaxWidth(),
                     fullName = vm.user?.fullName.orEmpty(),
                     city = vm.city.joinToString { it.localName },
-                    phone = vm.user?.phone?.takeIf { vm.user?.phoneIsAvailable ?: false },
                     link = vm.user?.link.orEmpty(),
                     address = vm.user?.address,
                     location = vm.user?.run {
@@ -205,6 +205,11 @@ class ProfileScreen(
                             longitude?.let { lng ->
                                 LatLng(lat, lng)
                             }
+                        }
+                    },
+                    onGoChat = {
+                        vm.getChatId {
+                            navigator?.push(ChatScreen(it))
                         }
                     }
                 )
@@ -586,10 +591,10 @@ class ProfileScreen(
         modifier: Modifier = Modifier,
         fullName: String,
         city: String,
-        phone: String?,
         link: String,
         address: String?,
-        location: LatLng?
+        location: LatLng?,
+        onGoChat: () -> Unit
     ) = Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -706,27 +711,20 @@ class ProfileScreen(
                 onClick = { IntentActions.shareText(context, fullName, link) }
             )
 
-            if (phone != null) {
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .align(Alignment.CenterVertically),
-                    color = MaterialTheme.colorScheme.outline,
-                    thickness = 1.dp
+            VerticalDivider(
+                modifier = Modifier
+                    .height(32.dp)
+                    .align(Alignment.CenterVertically),
+                color = MaterialTheme.colorScheme.outline,
+                thickness = 1.dp
+            )
+            if (userId != null) {
+                CircleIconButton(
+                    icon = painterResource(R.drawable.ic_chat_bubble),
+                    accentColor = AppColor.green700,
+                    onClick = onGoChat
                 )
             }
-            CircleIconButton(
-                visible = phone != null,
-                icon = rememberVectorPainter(Icons.Default.Phone),
-                accentColor = AppColor.green700,
-                onClick = { phone?.let { IntentActions.callNumber(context, it) } }
-            )
-            CircleIconButton(
-                visible = phone != null,
-                icon = painterResource(R.drawable.ic_chat_bubble),
-                accentColor = AppColor.green700,
-                onClick = { phone?.let { IntentActions.sendMessage(context, it) } }
-            )
         }
     }
 
