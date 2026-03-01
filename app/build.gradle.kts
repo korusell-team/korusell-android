@@ -12,8 +12,8 @@ plugins {
 
 val versionMajor = 1
 val versionMinor = 1 //max 9
-val versionPatch = 1 //max 9
-val versionBuild = 11 //max 99
+val versionPatch = 2 //max 9
+val versionBuild = 0 //max 99
 
 val props = loadLocalProperties(rootProject.file("local.properties"))
 
