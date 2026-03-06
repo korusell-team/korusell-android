@@ -44,4 +44,6 @@ dependencies {
     //Koin DI
     implementation(libs.koin.core)
 
+    implementation(libs.kotlinx.datetime)
+
 }

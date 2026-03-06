@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.data.firestore.executors.firestore
 
+import android.util.Log
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.Source
@@ -31,6 +32,7 @@ internal class FirestoreGetRequestExecutor<T>(
         onEach(response)
         FetchState.Success(mapper(response))
     } catch (e: Exception){
+        Log.e("FirestoreGetRequestExecutor", "Error", e)
         FetchState.Error(e)
     }
 

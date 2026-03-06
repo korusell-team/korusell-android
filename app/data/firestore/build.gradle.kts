@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":app:data:repository"))
 
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.datetime)
 
     //Koin DI
     implementation(libs.koin.core)

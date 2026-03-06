@@ -6,12 +6,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -23,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -56,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
+import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.R
 import net.alienminds.ethnogram.data.model.chat.Chat
 import net.alienminds.ethnogram.data.model.chat.Message
@@ -79,10 +84,18 @@ class ChatScreen(
         val context = LocalContext.current
         val navigator = LocalNavigator.current
         val vm = rememberScreenModel { ChatModel(chatID, context.contentResolver) }
+        val lazyState = rememberLazyListState()
         LaunchedEffect(Unit) {
-            vm.goBackEvent.collect{
-                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                navigator?.pop()
+            launch {
+                vm.goBackEvent.collect {
+                    Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    navigator?.pop()
+                }
+            }
+            launch {
+                vm.scrollTopEvent.collect {
+                    lazyState.animateScrollToItem(0)
+                }
             }
         }
         DisposableEffect(Unit) {
@@ -104,7 +117,8 @@ class ChatScreen(
                 vertical = 16.dp
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            reverseLayout = true
+            reverseLayout = true,
+            state = lazyState
         ) {
             vm.chat?.let { chat ->
                 messages(vm, chat)
@@ -126,6 +140,7 @@ class ChatScreen(
             modifier = Modifier
                 .navigationBarsPadding()
                 .imePadding()
+                .padding(bottom = 16.dp)
                 .padding(horizontal = 20.dp),
             state = vm.messageField,
             onSendText = vm::sendTextMessage,
@@ -168,6 +183,7 @@ class ChatScreen(
             isDownloadingFile = isDownloadingFile,
             isCachedFile = isCachedFile,
             onDownloadFile = { (message as? Message.FileMessage)?.let(vm::downloadFile) },
+            onDownloadImage = { vm.downloadFileByUri(context, it) },
             onOpenFile = { vm.openFile(
                 context = context,
                 messageId = message.id,
@@ -214,6 +230,7 @@ class ChatScreen(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        showPickFile = false
                     },
                     shape = MaterialTheme.shapes.medium,
                 ) {
@@ -222,7 +239,10 @@ class ChatScreen(
                 HorizontalDivider()
                 TextButton(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { filePicker.launch(arrayOf("*/*")) },
+                    onClick = {
+                        filePicker.launch(arrayOf("*/*"))
+                        showPickFile = false
+                    },
                     shape = MaterialTheme.shapes.medium,
                 ) {
                     Text("Файл")
@@ -238,18 +258,18 @@ class ChatScreen(
         ){
 
             IconButton(
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(32.dp),
                 onClick = { showPickFile = showPickFile.not() },
                 shape = CircleShape,
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.onBackground.copy(0.1f),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     contentColor = MaterialTheme.colorScheme.primary,
-                    disabledContainerColor = MaterialTheme.colorScheme.onBackground.copy(0.1f),
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     disabledContentColor = MaterialTheme.colorScheme.outline
                 )
             ) {
                 Icon(
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(24.dp),
                     painter = painterResource(R.drawable.ic_attach_file),
                     contentDescription = null
                 )
@@ -257,20 +277,34 @@ class ChatScreen(
 
             CompactTextField(
                 modifier = Modifier
-                    .heightIn(44.dp)
+                    .heightIn(32.dp)
                     .weight(1f),
                 state = state,
                 textStyle = MaterialTheme.typography.labelLarge,
                 shape = MaterialTheme.shapes.small,
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(0.2f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(0.2f),
-                    disabledContainerColor = MaterialTheme.colorScheme.onBackground.copy(0.1f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent
                 ),
+                suffix = {
+                    Spacer(Modifier.weight(1f))
+                    AnimatedVisibility(state.text.toString().isNotEmpty()) {
+                        Icon(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable{ onSendText() },
+                            painter = painterResource(R.drawable.ic_send),
+                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = null
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                },
                 lineLimits = TextFieldLineLimits.MultiLine(
                     minHeightInLines = 1,
                     maxHeightInLines = 6
@@ -282,25 +316,6 @@ class ChatScreen(
                     )
                 }
             )
-
-            IconButton(
-                modifier = Modifier.size(44.dp),
-                onClick = onSendText,
-                shape = CircleShape,
-                enabled = state.text.toString().isNotEmpty(),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.onBackground.copy(0.1f),
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    disabledContainerColor = MaterialTheme.colorScheme.onBackground.copy(0.1f),
-                    disabledContentColor = MaterialTheme.colorScheme.outline
-                )
-            ) {
-                Icon(
-                    modifier = Modifier.size(22.dp),
-                    painter = painterResource(R.drawable.ic_send),
-                    contentDescription = null
-                )
-            }
 
         }
     }
@@ -333,16 +348,15 @@ class ChatScreen(
             initials = chat?.interlocutorName.orEmpty().split(' ')
                 .joinToString(""){ it.firstOrNull()?.toString().orEmpty() },
             contentScale = ContentScale.Crop,
+            textStyle = MaterialTheme.typography.titleLarge,
             border = BorderStroke(
-                width = 2.dp,
+                width = 4.dp,
                 color = MaterialTheme.colorScheme.background
             ),
             onClick = {
                 chat?.interlocutorId?.let { userId ->
                     val dest = ProfileScreen(userId)
-                    if (navigator?.popUntil { it.key == dest.key }?.not()?: true){
-                        navigator?.push(dest)
-                    }
+                    navigator?.push(dest)
                 }
             }
         )

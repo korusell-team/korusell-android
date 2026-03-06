@@ -88,13 +88,13 @@ internal class UserGrouper(
         val isDefault = category == null && subCategory == null
 
         return when(isDefault){
-            true -> unblockedUsers.filter { it.isSponsored }
+            true -> unblockedUsers
             false -> {
                 unblockedUsers.filterByCategories(
                     currentCategory = category,
                     currentSubCategory = subCategory,
                     subCategories = filteredSubCategories(allCategories, category?.id)
-                ).filter { it.isSponsored }.sortedWith(
+                ).sortedWith(
                     compareByDescending<User> { it.sponsoredExpDate?.let { it > Instant.now() } == true }
                         .thenByDescending { it.priority ?: 0L }
                         .thenByDescending { it.likes.size }

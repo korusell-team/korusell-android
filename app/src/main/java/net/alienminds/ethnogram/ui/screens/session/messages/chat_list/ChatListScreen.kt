@@ -3,6 +3,7 @@ package net.alienminds.ethnogram.ui.screens.session.messages.chat_list
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -79,7 +81,8 @@ object ChatListScreen : NavBarScreen {
             contentPadding = PaddingValues(
                 horizontal = 20.dp,
                 vertical = 16.dp
-            )
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             chats(vm.chats)
             if (vm.chats.isEmpty()){
@@ -126,7 +129,9 @@ object ChatListScreen : NavBarScreen {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Avatar(
-                modifier = Modifier.size(54.dp),
+                modifier = Modifier
+                    .align(Alignment.Top)
+                    .size(52.dp),
                 model = chat.interlocutorAvatar,
                 initials = chat.interlocutorName.split(' ')
                     .joinToString(""){ it.firstOrNull()?.toString().orEmpty() },
@@ -158,8 +163,8 @@ object ChatListScreen : NavBarScreen {
                     )
                     Text(
                         text = time,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
                     )
                 }
                 Row(
@@ -169,7 +174,8 @@ object ChatListScreen : NavBarScreen {
                         modifier = Modifier.weight(1f),
                         text = chat.lastMessage,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -194,7 +200,7 @@ object ChatListScreen : NavBarScreen {
                     }
                 }
                 HorizontalDivider(
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
         }

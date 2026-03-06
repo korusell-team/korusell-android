@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.ui.screens.session.messages.chat
 
+import android.app.DownloadManager
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -39,7 +40,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import android.content.Context
 import android.content.Intent
+import android.os.Environment
+import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
+import kotlinx.datetime.LocalDateTime
+import net.alienminds.ethnogram.data.model.chat.FileMeta
 
 class ChatModel(
     private val chatID: ID,
@@ -51,6 +56,10 @@ class ChatModel(
 
     private val _goBackEvent = MutableSharedFlow<String>()// Reason
     val goBackEvent = _goBackEvent.asSharedFlow()
+
+    private val _scrollTopEvent = MutableSharedFlow<Unit>()
+    val scrollTopEvent = _scrollTopEvent.asSharedFlow()
+
 
     var isLoadingMessages by mutableStateOf(false)
         private set
@@ -105,6 +114,7 @@ class ChatModel(
                 senderId = chat?.participants?.first { it != chat?.interlocutorId }.orEmpty()
             )
             _messages.add(tmpMsg)
+            _scrollTopEvent.emit(Unit)
 
             messagesRepository.sendMessage(
                 chatID = chatID,
@@ -138,6 +148,7 @@ class ChatModel(
             )
             _sendingMessageIds.add(tmpMsgId)
             _messages.add(tmpMsg)
+            _scrollTopEvent.emit(Unit)
 
             messagesRepository.sendMessage(
                 chatID = chatID,
@@ -223,6 +234,7 @@ class ChatModel(
             )
             _sendingMessageIds.add(tmpMsgId)
             _messages.add(tmpMsg)
+            _scrollTopEvent.emit(Unit)
 
             messagesRepository.sendMessage(
                 chatID = chatID,
@@ -318,6 +330,7 @@ class ChatModel(
                 .collect {
                     _messages.addAll(it)
                     markChatAsRead()
+                    _scrollTopEvent.emit(Unit)
                 }
         }
     }
@@ -391,6 +404,41 @@ class ChatModel(
                 Log.e("ChatModel", "Error downloading file", e)
             } finally {
                 _downloadingFileIds.remove(message.id)
+            }
+        }
+    }
+
+    fun downloadFileByUri(context: Context, uri: Uri, fileName: String? = null){
+        screenModelScope.launch {
+            runCatching {
+                println("Download Uri: $uri")
+                val meta = when(fileName == null){
+                    true -> messagesRepository.getFileMeta(uri.toString()).get().getOrNull()
+                    false -> {
+                        val ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+                        val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                        FileMeta(
+                            contentType = type.orEmpty(),
+                            extension = ext,
+                            name = fileName
+                        )
+                    }
+                }
+                val rawFileName = meta?.name?: LocalDateTime.toString()
+                val finalFileName = when(rawFileName.endsWith(meta?.extension.orEmpty(), true)){
+                    true -> rawFileName
+                    false -> "${rawFileName}.${meta?.extension}"
+                }
+                println("Download File: $finalFileName, meta: $meta")
+                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val request = DownloadManager.Request(uri)
+                    .setTitle(finalFileName)
+                    .setDescription("Скачивание...")
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, finalFileName)
+                val downloadId = downloadManager.enqueue(request)
+            }.onFailure {
+                Log.e("ChatModel", "Error downloading file", it)
             }
         }
     }

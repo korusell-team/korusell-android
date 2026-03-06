@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.ui.screens.session.messages.chat.components
 
+import android.net.Uri
 import android.text.format.Formatter
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,16 +13,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,13 +38,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.valentinilk.shimmer.shimmer
@@ -63,6 +79,7 @@ fun ChatScreen.MessageLine(
     isDownloadingFile: Boolean,
     isCachedFile: Boolean,
     onDownloadFile: () -> Unit,
+    onDownloadImage: (Uri) -> Unit,
     onOpenFile: () -> Unit,
     onShareFile: () -> Unit,
     onSaveFile: () -> Unit,
@@ -103,8 +120,16 @@ fun ChatScreen.MessageLine(
                     )
             ) {
                 when (message) {
-                    is Message.TextMessage -> TextMessageContent(message.text, isMe)
-                    is Message.ImageMessage -> ImageMessageContent(message, isMe, isSending)
+                    is Message.TextMessage -> TextMessageContent(
+                        text = message.text,
+                        isMe = isMe
+                    )
+                    is Message.ImageMessage -> ImageMessageContent(
+                        message = message,
+                        isMe = isMe,
+                        isSending = isSending,
+                        onDownload = onDownloadImage
+                    )
                     is Message.FileMessage -> FileMessageContent(
                         message = message,
                         isMe = isMe,
@@ -137,35 +162,129 @@ fun ChatScreen.MessageLine(
 private fun TextMessageContent(
     text: String,
     isMe: Boolean
-) = Text(
+) = SelectionContainer(
     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-    text = text,
-    style = MaterialTheme.typography.bodyMedium,
-    color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-)
+){
+    Text(
+        text = buildTextMessageAnnotated(
+            text = text,
+            linkColor = when(isMe) {
+                true -> MaterialTheme.colorScheme.onPrimary
+                false -> MaterialTheme.colorScheme.primary
+            }
+        ),
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+private val urlRegex = "(https?://[\\w\\-._~:/?#\\\\@!$&'()*+,;=%]+)".toRegex()
+
+
+private fun buildTextMessageAnnotated(
+    text: String,
+    linkColor: Color
+): AnnotatedString =
+    buildAnnotatedString {
+        var lastIndex = 0
+        urlRegex.findAll(text).forEach { match ->
+            val start =  match.range.first
+            val end = match.range.last + 1
+
+            append(text.substring(lastIndex, start))
+
+            val url = match.value
+            withLink(
+                LinkAnnotation.Url(
+                    url = url,
+                    styles = TextLinkStyles(SpanStyle(
+                        color = linkColor,
+                        textDecoration = TextDecoration.Underline
+                    )),
+                ),
+                block = { append(url) }
+            )
+            lastIndex = end
+        }
+        if (lastIndex < text.length) {
+            append(text.substring(lastIndex))
+        }
+    }
+
+
+//fun buildAnnotatedStringWithLinks(text: String): AnnotatedString {
+//    val builder = AnnotatedString.Builder()
+//
+//    var lastIndex = 0
+//
+//    urlRegex.findAll(text).forEach { match ->
+//        val start = match.range.first
+//        val end = match.range.last + 1
+//
+//        builder.append(text.substring(lastIndex, start))
+//
+//        val url = match.value
+//
+//        builder.pushStringAnnotation(
+//            tag = "URL",
+//            annotation = url
+//        )
+//
+//
+//        builder.withStyle(
+//            SpanStyle(
+//                color = Color(0xFF64B5F6),
+//                textDecoration = TextDecoration.Underline
+//            )
+//        ) {
+//            append(url)
+//        }
+//
+//        builder.pop()
+//
+//        lastIndex = end
+//    }
+//
+//    if (lastIndex < text.length) {
+//        builder.append(text.substring(lastIndex))
+//    }
+//
+//    return builder.toAnnotatedString()
+//}
 
 @Composable
 private fun ImageMessageContent(
     message: Message.ImageMessage,
     isMe: Boolean,
-    isSending: Boolean
+    isSending: Boolean,
+    onDownload: (Uri) -> Unit
 ) = Box(contentAlignment = Alignment.BottomEnd) {
     val painter = rememberAsyncImagePainter(message.imageUrl)
     val painterState = painter.state.collectAsState()
     val isLoadingImage = painterState.value is AsyncImagePainter.State.Loading
     if (isLoadingImage){
         Spacer(Modifier
-            .heightIn(max = 400.dp)
+            .heightIn(max = 200.dp)
             .aspectRatio(1f)
             .background(MaterialTheme.colorScheme.outline)
             .shimmer())
     } else{
+        var showViewDialog by remember { mutableStateOf(false) }
         Image(
-            modifier = Modifier.heightIn(max = 400.dp),
+            modifier = Modifier
+                .heightIn(max = 400.dp)
+                .clickable { showViewDialog = showViewDialog.not() },
             painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Fit,
         )
+        if(showViewDialog){
+            ViewImageDialog(
+                image = painter,
+                onDownload = { message.imageUrl.toUri().let(onDownload) },
+                onDismiss = { showViewDialog = false }
+            )
+        }
     }
     if (isSending || isLoadingImage){
         CircularProgressIndicator(
@@ -185,6 +304,49 @@ private fun ImageMessageContent(
             isText = false,
             isSending = isSending
         )
+    }
+}
+
+@Composable
+private fun ViewImageDialog(
+    image: Painter,
+    onDownload: () -> Unit,
+    onDismiss: () -> Unit
+) = Dialog(
+    onDismissRequest = onDismiss,
+    properties = DialogProperties(
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false
+    )
+){
+    val context = LocalContext.current
+    Column(
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Image(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, false),
+            painter = image,
+            contentDescription = null,
+            contentScale = ContentScale.Fit
+        )
+        IconButton(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .navigationBarsPadding()
+                .padding(vertical = 16.dp),
+            onClick = onDownload,
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_download),
+                contentDescription = null
+            )
+        }
     }
 }
 

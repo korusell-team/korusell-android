@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.data.firestore.executors.firestore
 
+import android.util.Log
 import com.google.firebase.firestore.ListenSource
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
@@ -25,7 +26,10 @@ internal class FirestoreObserveRequestExecutor<T>(
         fetchMode: FetchMode.ObserveFetchMode
     ): Flow<ObserveState<T>> = channelFlow{
         send(ObserveState.loading())
-        val query = resolveCall()
+        val query = runCatching { resolveCall() }.onFailure {
+            Log.e("FirestoreObserveRequestExecutor", "Error", it)
+            send(ObserveState.error(it))
+        }.getOrNull()?: return@channelFlow
         val getExecutor = FirestoreGetRequestExecutor(
             resolveCall = { query },
             onEach = onEach,
@@ -49,24 +53,29 @@ internal class FirestoreObserveRequestExecutor<T>(
             }
         }
 
-        // Subscribe to changes
-        val listenerOptions = SnapshotListenOptions.Builder()
-            .setMetadataChanges(MetadataChanges.INCLUDE)
-            .setSource(observeSource)
-            .build()
+        runCatching {
+            // Subscribe to changes
+            val listenerOptions = SnapshotListenOptions.Builder()
+                .setMetadataChanges(MetadataChanges.INCLUDE)
+                .setSource(observeSource)
+                .build()
 
-        val registration = query.addSnapshotListener(listenerOptions){ snapshot, error ->
-            if (error != null){
-                launch { send(ObserveState.error(error)) }
-            }
-            if (snapshot != null){
-                launch {
-                    onEach(snapshot)
-                    send(ObserveState.success(mapper(snapshot)))
+            val registration = query.addSnapshotListener(listenerOptions) { snapshot, error ->
+                if (error != null) {
+                    launch { send(ObserveState.error(error)) }
+                }
+                if (snapshot != null) {
+                    launch {
+                        onEach(snapshot)
+                        send(ObserveState.success(mapper(snapshot)))
+                    }
                 }
             }
+            awaitClose { registration.remove() }
+        }.onFailure {
+            Log.e("FirestoreObserveRequestExecutor", "Error", it)
+            send(ObserveState.error(it))
         }
-        awaitClose { registration.remove() }
     }
 
 }

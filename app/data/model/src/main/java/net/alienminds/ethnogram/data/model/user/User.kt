@@ -1,6 +1,6 @@
 package net.alienminds.ethnogram.data.model.user
 
-import java.time.Instant
+import kotlin.time.Instant
 
 data class User(
     val uid: String? = null,

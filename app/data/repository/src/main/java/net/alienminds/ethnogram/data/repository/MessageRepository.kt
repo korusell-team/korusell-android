@@ -1,6 +1,7 @@
 package net.alienminds.ethnogram.data.repository
 
 import net.alienminds.ethnogram.data.model.chat.Chat
+import net.alienminds.ethnogram.data.model.chat.FileMeta
 import net.alienminds.ethnogram.data.model.chat.Message
 import net.alienminds.ethnogram.data.model.chat.MessageInput
 import net.alienminds.ethnogram.data.model.common.ID
@@ -28,5 +29,7 @@ interface MessageRepository {
     fun sendMessage(chatID: ID, message: MessageInput): MutationRequestExecutor<Message>
 
     fun markChatAsRead(chatID: ID): MutationRequestExecutor<Unit>
+
+    fun getFileMeta(url: String): GetRequestExecutor<FileMeta>
 
 }

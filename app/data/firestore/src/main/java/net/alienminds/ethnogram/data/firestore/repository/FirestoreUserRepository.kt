@@ -1,5 +1,6 @@
 package net.alienminds.ethnogram.data.firestore.repository
 
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
 import net.alienminds.ethnogram.data.firestore.executors.firestore.FirestoreQueryRequestExecutor
@@ -14,10 +15,13 @@ import net.alienminds.ethnogram.data.model.core.FetchMode
 import net.alienminds.ethnogram.data.model.core.QueryRequestExecutor
 import net.alienminds.ethnogram.data.model.user.User
 import net.alienminds.ethnogram.data.model.user.UserFilter
+import net.alienminds.ethnogram.data.model.user.UserSocial
+import net.alienminds.ethnogram.data.model.user.UserType
 import net.alienminds.ethnogram.data.repository.AuthRepository
 import net.alienminds.ethnogram.data.repository.UserRepository2
 import java.util.Date
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 class FirestoreUserRepository(
     private val firestoreProvider: FirestoreProvider,
@@ -42,7 +46,7 @@ class FirestoreUserRepository(
         mapper = { snapshot ->
             val docs = snapshot.documents
             val users = docs.mapNotNull { doc ->
-                doc.toObject(User::class.java)
+                doc.toUser()
             }
             PagingData(
                 items = users,
@@ -63,7 +67,7 @@ class FirestoreUserRepository(
             mapper = { snapshot ->
                 val docs = snapshot.documents
                 val users = docs.mapNotNull { doc ->
-                    doc.toObject(User::class.java)
+                    doc.toUser()
                 }.sortedByDescending { it.likes.size }
                 PagingData(
                     items = users,
@@ -84,7 +88,7 @@ class FirestoreUserRepository(
             mapper = { snapshot ->
                 val docs = snapshot.documents
                 val users = docs.mapNotNull { doc ->
-                    doc.toObject(User::class.java)
+                    doc.toUser()
                 }
                 PagingData(
                     items = users,
@@ -110,11 +114,10 @@ class FirestoreUserRepository(
                 usersRef.whereEqualTo(UserFields.PHONE, it)
             }?: usersRef.whereEqualTo(UserFields.UID, identity.id))
                 .limit(1)
-
         },
         mapper = {
             it.documents.firstNotNullOfOrNull { doc ->
-                doc.toObject(User::class.java)
+                doc.toUser()
             }?: throw IllegalStateException("User not found")
         }
     )
@@ -125,7 +128,7 @@ class FirestoreUserRepository(
         },
         mapper = {
             it.documents.firstNotNullOfOrNull { doc ->
-                doc.toObject(User::class.java)
+                doc.toUser()
             }?: throw IllegalStateException("User not found")
         }
     )
@@ -133,6 +136,61 @@ class FirestoreUserRepository(
 
     private fun Query.onlyPublic(): Query =
         whereEqualTo(UserFields.IS_PUBLIC, true)
+
+    private fun DocumentSnapshot.toUser(): User{
+        return User(
+            uid = getString(UserFields.UID),
+            name = getString(UserFields.NAME),
+            surname = getString(UserFields.SURNAME),
+            bio = getString(UserFields.BIO),
+            info = getString(UserFields.INFO),
+            priority = getLong(UserFields.PRIORITY),
+            phone = getString(UserFields.PHONE),
+            social = UserSocial(),
+            phoneIsAvailable = getBoolean(UserFields.PHONE_IS_AVAILABLE),
+            isPublic = getBoolean(UserFields.IS_PUBLIC),
+            image = getListString(UserFields.IMAGE),
+            imagePath = getListString(UserFields.IMAGE_PATH),
+            smallImage = getString(UserFields.SMALL_IMAGE),
+            smallImagePath = getString(UserFields.SMALL_IMAGE_PATH),
+            likes = getListString(UserFields.LIKES),
+            categories = getListLong(UserFields.CATEGORIES),
+            cities = getListLong(UserFields.CITIES),
+            blockedBy = getListString(UserFields.BLOCKED),
+            reports = getListString(UserFields.REPORTS),
+            sponsoredExpDate = getInstant(UserFields.SPONSORED_EXP_DATE),
+            created = getInstant(UserFields.CREATED),
+            updated = getInstant(UserFields.UPDATED),
+            avgRating = getDouble(UserFields.AVG_RATING)?: 0.0,
+            type = when(getBoolean(UserFields.IS_COMPANY)){
+                true -> UserType.BUSINESS
+                else -> UserType.PERSONAL
+            },
+            address = getString(UserFields.ADDRESS),
+            latitude = getDouble(UserFields.LATITUDE),
+            longitude = getDouble(UserFields.LONGITUDE)
+        )
+    }
+
+    private fun DocumentSnapshot.getListString(
+        field: String
+    ): List<String>{
+        return (get(field) as? List<*>)
+            ?.mapNotNull { it as? String }
+            .orEmpty()
+    }
+
+    private fun DocumentSnapshot.getListLong(
+        field: String
+    ): List<Long>{
+        return (get(field) as? List<*>)
+            ?.mapNotNull { it as? Long }
+            .orEmpty()
+    }
+
+    private fun DocumentSnapshot.getInstant(field: String) = getTimestamp(field)?.let {
+        Instant.fromEpochSeconds(it.seconds, it.nanoseconds)
+    }
 
 
 }

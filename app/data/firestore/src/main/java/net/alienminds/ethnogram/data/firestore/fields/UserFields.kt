@@ -2,7 +2,7 @@ package net.alienminds.ethnogram.data.firestore.fields
 
 internal object UserFields {
     const val UID = "uid"
-    const val TYPE = "isCompany"
+    const val IS_COMPANY = "isCompany"
     const val IS_PUBLIC = "isPublic"
     const val NAME = "name"
     const val SURNAME = "surname"

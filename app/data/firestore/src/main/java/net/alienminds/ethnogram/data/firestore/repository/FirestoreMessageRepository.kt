@@ -2,6 +2,7 @@ package net.alienminds.ethnogram.data.firestore.repository
 
 import android.net.Uri
 import android.util.Log
+import android.webkit.MimeTypeMap
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.DocumentSnapshot
@@ -9,7 +10,6 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenSource
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.TransactionOptions
 import com.google.firebase.storage.storage
 import kotlinx.coroutines.flow.emitAll
@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import net.alienminds.ethnogram.data.firestore.executors.base.BaseGetRequestExecutor
-import net.alienminds.ethnogram.data.firestore.executors.base.BaseObserveRequestExecutor
 import net.alienminds.ethnogram.data.firestore.executors.base.BaseQueryRequestExecutor
 import net.alienminds.ethnogram.data.firestore.executors.firestore.FirestoreMutationRequestExecutor
 import net.alienminds.ethnogram.data.firestore.executors.firestore.FirestoreObserveRequestExecutor
@@ -28,6 +27,7 @@ import net.alienminds.ethnogram.data.firestore.utils.FirestoreProvider
 import net.alienminds.ethnogram.data.firestore.utils.applyPaging
 import net.alienminds.ethnogram.data.firestore.utils.toPagingMeta
 import net.alienminds.ethnogram.data.model.chat.Chat
+import net.alienminds.ethnogram.data.model.chat.FileMeta
 import net.alienminds.ethnogram.data.model.chat.Message
 import net.alienminds.ethnogram.data.model.chat.MessageInput
 import net.alienminds.ethnogram.data.model.chat.preview
@@ -44,6 +44,7 @@ import net.alienminds.ethnogram.data.model.core.ObserveState
 import net.alienminds.ethnogram.data.model.core.QueryRequestExecutor
 import net.alienminds.ethnogram.data.model.user.User
 import net.alienminds.ethnogram.data.model.user.UserType
+import net.alienminds.ethnogram.data.repository.AuthRepository
 import net.alienminds.ethnogram.data.repository.MessageRepository
 import net.alienminds.ethnogram.data.repository.UserRepository2
 import java.util.UUID
@@ -52,7 +53,8 @@ import kotlin.time.Instant
 
 class FirestoreMessageRepository(
     private val firestoreProvider: FirestoreProvider,
-    private val userRepo: UserRepository2
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository2
 ) : MessageRepository {
 
     private val chatsRef
@@ -62,11 +64,7 @@ class FirestoreMessageRepository(
         if (fetchMode != FetchMode.CacheFirst){
             Log.w("FirestoreMessageRepository", "getChatId called in non-cache-first mode, this is not supported")
         }
-        val meUid = userRepo.getMe()
-            .get(FetchMode.CacheFirst)
-            .getOrNull()
-            ?.uid
-            ?: return@BaseGetRequestExecutor FetchState.Error(IllegalStateException("User is not authorized"))
+        val meUid = getMyId() ?: return@BaseGetRequestExecutor FetchState.Error(IllegalStateException("User is not authorized"))
         if (userId == meUid){
             return@BaseGetRequestExecutor FetchState.Error(IllegalStateException("You can't chat with yourself"))
         }
@@ -82,10 +80,7 @@ class FirestoreMessageRepository(
         var meUid = ""
         return FirestoreQueryRequestExecutor(
             resolveCall = {
-                meUid = userRepo.getMe()
-                    .get(FetchMode.CacheFirst)
-                    .getOrNull()
-                    ?.uid ?: throw IllegalStateException("User is not authorized")
+                meUid = getMyIdOrThrow()
                 chatsRef
                     .whereArrayContains(ChatFields.VISIBLE_FOR, meUid)
                     .orderBy(ChatFields.LAST_MESSAGE_DATE, Query.Direction.DESCENDING)
@@ -107,10 +102,7 @@ class FirestoreMessageRepository(
 
     override fun getChat(chatID: ID): GetRequestExecutor<Chat> =
         BaseGetRequestExecutor{ fetchMode ->
-            val meUid = userRepo.getMe()
-                .get(FetchMode.CacheFirst)
-                .getOrNull()
-                ?.uid
+            val meUid = getMyId()
                 ?: return@BaseGetRequestExecutor FetchState.Error(IllegalStateException("User is not authorized"))
 
             // Получаем чат из Firestore
@@ -123,7 +115,7 @@ class FirestoreMessageRepository(
 
             // Если чата нет, возвращаем виртуальный
             val otherUserId = chatID.split("_").first { it != meUid }
-            val otherUser = userRepo.getUser(otherUserId)
+            val otherUser = userRepository.getUser(otherUserId)
                 .get(FetchMode.CacheFirst)
                 .getOrNull()
                 ?: return@BaseGetRequestExecutor FetchState.Error(IllegalStateException("Chat not found"))
@@ -193,76 +185,31 @@ class FirestoreMessageRepository(
             observeSource = ListenSource.DEFAULT
         )
 
-    override fun getUnreadChatsCount(): QueryRequestExecutor<Int> = BaseQueryRequestExecutor(
-        onGet = { fetchMode ->
-            if (fetchMode != FetchMode.NetworkOnly) {
-                Log.w(
-                    "FirestoreMessageRepository",
-                    "getUnreadChatsCount called in non-network-only mode, this is not supported"
-                )
-            }
-            try {
-                val meUid = userRepo.getMe()
-                    .get(FetchMode.CacheFirst)
-                    .getOrNull()
-                    ?.uid ?: throw IllegalStateException("User is not authorized")
-                chatsRef
-                    .whereArrayContains(ChatFields.VISIBLE_FOR, meUid)
-                    .whereGreaterThan(ChatFields.unreadMessagesCount(meUid), 0)
-                    .count()
-                    .get(AggregateSource.SERVER)
-                    .await()
-                    .count
-                    .toInt()
-                    .let { FetchState.Success(it) }
-            } catch (e: Exception) {
-                FetchState.Error(e)
-            }
-        },
-        onObserve = { fetchMode ->
-            if (fetchMode != FetchMode.CacheOnly){
-                Log.w(
-                    "FirestoreMessageRepository",
-                    "getUnreadChatsCount called in non-cache-only mode, this is not supported"
-                )
-            }
-            flow {
-                emit(ObserveState.loading())
-                val meUid = userRepo.getMe()
-                    .get(FetchMode.CacheFirst)
-                    .getOrNull()
-                    ?.uid ?: throw IllegalStateException("User is not authorized")
-                emitAll(getUnreadChats(meUid).observe(FetchMode.CacheOnly).map { os ->
-                    os.dataOrNull()?.getOrNull()?.size?.let {
-                        ObserveState.success(it)
-                    }?: when(os.isLoading){
-                        true -> ObserveState.loading()
-                        false -> ObserveState.error(os.errorOrNull()?.error?: IllegalStateException("Unknown error"))
-                    }
-                })
-            }
-        }
-    )
-
-    private fun getUnreadChats(meUid: ID): QueryRequestExecutor<List<Chat>> =
-        FirestoreQueryRequestExecutor(
+    override fun getUnreadChatsCount(): QueryRequestExecutor<Int>{
+        var meUid: ID? = null
+        return FirestoreQueryRequestExecutor(
             resolveCall = {
+                meUid = getMyIdOrThrow()
                 chatsRef
                     .whereArrayContains(ChatFields.VISIBLE_FOR, meUid)
                     .whereGreaterThan(ChatFields.unreadMessagesCount(meUid), 0)
             },
             mapper = { snapshot ->
-                snapshot.documents.mapNotNull{
+                if (meUid == null) return@FirestoreQueryRequestExecutor 0
+                val chats = snapshot.documents.mapNotNull{
                     it.toChat(meUid)
                 }
-            }
+                chats.sumOf { it.unreadMessagesCount }
+            },
+            observeSource = ListenSource.DEFAULT
         )
+    }
 
     override fun sendMessage(
         chatID: ID,
         message: MessageInput
     ): MutationRequestExecutor<Message> = FirestoreMutationRequestExecutor{
-        val me = userRepo.getMe()
+        val me = userRepository.getMe()
             .get(FetchMode.CacheFirst)
             .getOrNull()
             ?: throw IllegalStateException("User is not authorized")
@@ -274,7 +221,7 @@ class FirestoreMessageRepository(
         var otherUser: User? = null
         val chatIsExist = chatsRef.document(chatID).get().await().exists()
         if (chatIsExist.not()){
-            otherUser = userRepo.getUser(otherUserId)
+            otherUser = userRepository.getUser(otherUserId)
                 .get(FetchMode.CacheFirst)
                 .getOrNull()
                 ?: throw IllegalStateException("User not found")
@@ -327,11 +274,13 @@ class FirestoreMessageRepository(
                 is MessageInput.Image -> mapOf(
                     MessageFields.MEDIA_URL to mediaUri,
 //                    MessageFields.THUMBNAIL_URL to message.thumbnailUri
+                    MessageFields.TEXT to "\uD83D\uDCF7 Фото"
                 )
                 is MessageInput.File -> mapOf(
                     MessageFields.MEDIA_URL to mediaUri,
                     MessageFields.FILE_NAME to message.fileName,
-                    MessageFields.FILE_SIZE to message.fileSize
+                    MessageFields.FILE_SIZE to message.fileSize,
+                    MessageFields.TEXT to "\uD83D\uDCCE ${message.fileName}"
                 )
             }
             tx.set(messageRef, payloadMap + mapOf(
@@ -375,14 +324,34 @@ class FirestoreMessageRepository(
 
     override fun markChatAsRead(chatID: ID): MutationRequestExecutor<Unit> =
         FirestoreMutationRequestExecutor{
-            val meUid = userRepo.getMe()
-                .get(FetchMode.CacheFirst)
-                .getOrNull()
-                ?.uid?: throw IllegalStateException("User is not authorized")
+            val meUid = getMyIdOrThrow()
             chatsRef.document(chatID)
                 .update(ChatFields.unreadMessagesCount(meUid), 0)
                 .await()
         }
+
+    override fun getFileMeta(url: String): GetRequestExecutor<FileMeta> =
+        BaseGetRequestExecutor{
+            runCatching {
+                val storageRef = Firebase.storage.getReferenceFromUrl(url)
+                val meta = storageRef.metadata.await()
+                val contentType = meta.contentType?: error("File content type is null")
+//                val fileSize = meta.sizeBytes
+                FileMeta(
+                    contentType = contentType,
+                    extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(contentType)?: "bin",
+                    name = meta.name.orEmpty()
+                )
+            }.fold(
+                onSuccess = { FetchState.Success(it) },
+                onFailure = { FetchState.Error(it) }
+            )
+        }
+
+    private suspend fun getMyId() = authRepository.getIdentity()
+        .get().getOrNull()?.id
+
+    private suspend fun getMyIdOrThrow() = getMyId()?: error("User is not authorized")
 
     private fun DocumentSnapshot.toChat(meID: ID): Chat? {
         val participants = (get(ChatFields.PARTICIPANTS) as? List<*>)
