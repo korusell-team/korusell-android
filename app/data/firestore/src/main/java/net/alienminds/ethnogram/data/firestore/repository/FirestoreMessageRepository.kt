@@ -190,9 +190,7 @@ class FirestoreMessageRepository(
         return FirestoreQueryRequestExecutor(
             resolveCall = {
                 meUid = getMyIdOrThrow()
-                chatsRef
-                    .whereArrayContains(ChatFields.VISIBLE_FOR, meUid)
-                    .whereGreaterThan(ChatFields.unreadMessagesCount(meUid), 0)
+                chatsRef.whereArrayContains(ChatFields.VISIBLE_FOR, meUid)
             },
             mapper = { snapshot ->
                 if (meUid == null) return@FirestoreQueryRequestExecutor 0

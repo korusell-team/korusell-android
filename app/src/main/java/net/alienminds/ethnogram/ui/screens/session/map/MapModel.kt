@@ -83,13 +83,13 @@ internal class MapModel(
         val unblocked = filterUsersByBlocking(me?.uid.orEmpty())
         val isDefault = category == null && subCategory == null
         return@with when(isDefault){
-            true -> unblocked
+            true -> unblocked.filterInBounds(projection)
             false -> unblocked.filterByCategories(
                 currentCategory = category,
                 currentSubCategory = subCategory,
                 subCategories = filteredSubCategories(allCategories, category?.id)
             ).filterInBounds(projection)
-        }.filter { it.isSponsored && it.isLocationAvailable }
+        }
             .sortedByDescending { it.likes.size }
             .let {
                 when(isDefault){

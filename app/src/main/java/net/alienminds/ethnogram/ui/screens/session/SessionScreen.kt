@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import net.alienminds.ethnogram.BuildConfig
+import net.alienminds.ethnogram.data.model.core.FetchMode
 import net.alienminds.ethnogram.data.repository.MessageRepository
 import net.alienminds.ethnogram.service.user.UserRepository
 import net.alienminds.ethnogram.ui.extentions.custom.Avatar
@@ -73,7 +74,7 @@ class SessionScreen: Screen {
 
     @Composable
     override fun Content() {
-        Navigator(ChatListScreen){ navigator ->
+        Navigator(MapScreen){ navigator ->
             val showNavBar = navigator.lastItemOrNull is NavBarScreen
             Column {
                 SlidePageTransition(
@@ -132,12 +133,12 @@ class SessionScreen: Screen {
             val selected = currentScreen?.key == item.key
             val badgeCount = when(item){
                 is ChatListScreen -> {
-                    val msgRepo = koinInject<MessageRepository>()
-                    val unreadFlow = remember() {
-                        msgRepo.getUnreadChatsCount()
-                            .observe()
+                    val msgRepo = koinInject<FirstChatsProvider>()
+                    val unreadFlow = remember{
+                        msgRepo.firstChatsState
                             .mapNotNull { it.dataOrNull() }
                             .mapNotNull { it.getOrNull() }
+                            .mapNotNull { it.items.sumOf { it.unreadMessagesCount } }
                     }
                     val state by unreadFlow.collectAsState(0)
                     state

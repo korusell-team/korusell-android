@@ -13,12 +13,14 @@ import net.alienminds.ethnogram.data.model.common.PagingInput
 import net.alienminds.ethnogram.data.model.common.PagingMeta
 import net.alienminds.ethnogram.data.model.core.FetchMode
 import net.alienminds.ethnogram.data.repository.MessageRepository
+import net.alienminds.ethnogram.ui.screens.session.FirstChatsProvider
 import net.alienminds.ethnogram.utils.AppScreenModel
 import org.koin.core.component.inject
 
 class ChatListModel: AppScreenModel() {
 
     private val messagesRepo by inject<MessageRepository>()
+    private val firstChatsProvider by inject<FirstChatsProvider>()
 
     var isLoadingChats by mutableStateOf(false)
     var chatsMeta by mutableStateOf<PagingMeta?>(null)
@@ -67,31 +69,28 @@ class ChatListModel: AppScreenModel() {
     private fun subscribeFirstChats(){
         if (isLoadingChats) return
         screenModelScope.launch {
-            messagesRepo.getChats(
-                pagingInput = PagingInput(
-                    pageLimit = 15
-                )
-            ).observe(FetchMode.CacheAndNetwork).collect{ os ->
-                isLoadingChats = os.isLoading
-                os.dataOrNull()?.fold(
-                    onSuccess = { result ->
-                        println("Chats: ${result.items}")
-                        val newChats = result.items
-                        if (_chats.isEmpty()) {
-                            _chats.addAll(newChats)
-                            chatsMeta = result.meta
-                        } else{
-                            _chats.removeAll { oldChat ->
-                                newChats.any { it.id == oldChat.id }
+            firstChatsProvider.firstChatsState
+                .collect { os ->
+                    isLoadingChats = os.isLoading
+                    os.dataOrNull()?.fold(
+                        onSuccess = { result ->
+                            println("Chats: ${result.items}")
+                            val newChats = result.items
+                            if (_chats.isEmpty()) {
+                                _chats.addAll(newChats)
+                                chatsMeta = result.meta
+                            } else{
+                                _chats.removeAll { oldChat ->
+                                    newChats.any { it.id == oldChat.id }
+                                }
+                                _chats.addAll(newChats)
                             }
-                            _chats.addAll(newChats)
+                        },
+                        onError = {
+                            Log.e("ChatListModel", "Error: ${it.message}")
                         }
-                    },
-                    onError = {
-                        Log.e("ChatListModel", "Error: ${it.message}")
-                    }
-                )
-            }
+                    )
+                }
         }.invokeOnCompletion {
             Log.w("ChatListModel", "subscribe first chats ended..")
             isLoadingChats = false
